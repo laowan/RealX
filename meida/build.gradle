@@ -1,4 +1,6 @@
 apply plugin: 'com.android.library'
+apply plugin: 'android-native-dependencies'
+apply plugin: 'maven'
 
 android {
     compileSdkVersion rootProject.ext.externalCompileSdkVersion
@@ -9,6 +11,10 @@ android {
         targetSdkVersion rootProject.ext.externalTargetSdkVersion
         versionCode rootProject.ext.externalVersionCode
         versionName rootProject.ext.externalVersionName
+
+        ndk {
+            abiFilters "armeabi-v7a"
+        }
     }
 
     buildTypes {
@@ -17,9 +23,126 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    packagingOptions {
+        exclude 'lib/armeabi-v7a/libffmpeg-neon.so'
+        exclude 'lib/armeabi-v7a/libaudioengine.so'
+
+        pickFirst 'lib/armeabi-v7a/libjpeg_jni.so'
+        pickFirst 'lib/armeabi-v7a/libycmedia.so'
+        pickFirst 'lib/armeabi-v7a/libijkplayer.so'
+        pickFirst 'lib/armeabi-v7a/libijksdl.so'
+    }
+
+    externalNativeBuild {
+        ndkBuild {
+            path './src/main/cpp/mediarecord-armv7a-neon/libycmedia/jni/Android.mk'
+        }
+    }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:28.0.0'
+    compile("com.yy.android.stmobile:stmobileAPI:${stmobile_version}:@aar")
+    compile "com.yy.android.orangefilter:orangefilter_android:${orangefilter_version}"
+    compile "com.yy.android.venus:venus_android:${venus_version}"
+    compile 'com.yy.android.hiidostatsdk:hiido_statis:3.4.53'
+    compile "com.google.code.gson:gson:${gson_version}"
+    /*本地构建时打开，提交到svn时关闭*/
+    //embedded project(':sTMobileAPI')/*本地构建时关闭，提交到svn时打开*/
 }
+
+//publish package to local repository
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            println ".....uploadArchives --> " + repositories.mavenLocal().getUrl() + "${description}"
+            repository(url: repositories.mavenLocal().getUrl())
+            pom.project {
+                groupId "${GROUP}"
+                artifactId 'yymediarecordersdk'
+                version "${version}"
+            }
+        }
+    }
+}
+
+import org.apache.tools.ant.taskdefs.condition.Os
+
+def deleteJniLibso() {
+    def SODIR = "$projectDir/src/main/jniLibs/armeabi-v7a"
+    File file = new File("$SODIR/libijkplayer.so")
+    file.delete();
+    file = new File("$SODIR/libijksdl.so")
+    file.delete();
+    file = new File("$SODIR/libycmedia.so")
+    file.delete()
+    file = new File("$SODIR/libyuv.so")
+    file.delete()
+    file = new File("$SODIR/libjpeg_jni.so")
+    file.delete()
+    //file = new File("$SODIR/libst_mobile.so")
+    //file.delete()
+    //file = new File("$SODIR/libstmobile_jni.so")
+    //file.delete()
+}
+
+task ndkBuild(type: Exec, description: 'Compile JNI source via NDK') {
+    def androidMKfile = "$projectDir/src/main/cpp/mediarecord-armv7a-neon/libycmedia/jni/Android.mk"
+    def applicationMKfile = "$projectDir/src/main/cpp/mediarecord-armv7a-neon/libycmedia/jni/Application.mk"
+    def ndkDir = System.env.ANDROID_NDK_HOME
+    if (ndkDir == null) {
+        if (Os.isFamily(Os.FAMILY_MAC)) {
+            Properties properties = new Properties()
+            properties.load(project.rootProject.file('local.properties').newDataInputStream())
+            ndkDir = properties.getProperty('ndk.dir')
+        } else {
+            ndkDir = android.ndkDirectory
+        }
+    }
+    def ndkbuildcmd = ""
+    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        ndkbuildcmd = "$ndkDir/ndk-build.cmd"
+    } else {
+        ndkbuildcmd = "$ndkDir/ndk-build"
+    }
+    def NDK_OUT_DIR = "$projectDir/libs"
+    def execmd = ["$ndkbuildcmd", "-j16", "NDK_PROJECT_PATH=$buildDir",
+                  "APP_BUILD_SCRIPT=$androidMKfile", "NDK_APPLICATION_MK=$applicationMKfile", "NDK_APP_LIBS_OUT=$NDK_OUT_DIR"]
+    println(execmd)
+    commandLine execmd
+}
+
+//pack the generated so library with symbols into zip
+task packSymbolsSo(type: Tar) {
+    destinationDir = file("${rootDir}/target")
+    baseName = 'lib name'
+    compression = Compression.GZIP
+    extension = 'tar.gz'
+    from(new File(buildDir, 'obj/local'))
+    include("**/*.so") //收集obj/local目录下所有so文件，你可以指定具体的文件
+    exclude("**/objs")  //排除obj/local目录下不需要的子目录objs
+}
+ndkBuild.finalizedBy packSymbolsSo
+
+task copyTask(type: Copy) {
+    deleteJniLibso()
+    def NDK_OUT_DIR = "$projectDir/libs/armeabi-v7a"
+    from "$NDK_OUT_DIR/libijkplayer.so"
+    from "$NDK_OUT_DIR/libijksdl.so"
+    from "$NDK_OUT_DIR/libycmedia.so"
+    from "$NDK_OUT_DIR/libyuv.so"
+    from "$NDK_OUT_DIR/libjpeg_jni.so"
+    //from "$NDK_OUT_DIR/libst_mobile.so"
+    //from "$NDK_OUT_DIR/libstmobile_jni.so"
+    into "$projectDir/src/main/jniLibs/armeabi-v7a"
+}
+
+copyTask.dependsOn ndkBuild
+
+tasks.withType(JavaCompile) {
+    compileTask -> compileTask.dependsOn copyTask
+}
+
+apply from: '../publish.gradle'

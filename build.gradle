@@ -4,6 +4,15 @@ buildscript {
     repositories {
         google()
         jcenter()
+        maven {
+            url "http://repo.yypm.com:8181/nexus/content/groups/public"
+        }
+        /*
+        maven {
+            url "file:///$System.env.ANDROID_HOME/extras/android/m2repository"
+        }
+        mavenCentral()
+        */
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.2.1'
@@ -11,13 +20,34 @@ buildscript {
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
+        classpath 'net.researchgate:gradle-release:2.5.0'
+        classpath 'com.nabilhachicha:android-native-dependencies:0.1.2'
     }
 }
+
+apply plugin: 'net.researchgate.release'
 
 allprojects {
     repositories {
         google()
         jcenter()
+
+        maven {
+            url "http://repo.yypm.com:8181/nexus/content/groups/public"
+        }
+        /*
+        maven {
+            url "file:///$System.env.ANDROID_HOME/extras/android/m2repository"
+        }
+        mavenCentral()
+        */
+
+        configurations.all {
+            // check for updates every build
+            resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
+            resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+            //resolutionStrategy.failOnVersionConflict()
+        }
     }
 }
 
@@ -35,4 +65,10 @@ ext {
     externalVersionName = "1.0"
 
     externalKotlinVersion = "1.3.0"
+}
+
+release {
+    failOnUnversionedFiles = false
+    failOnUpdateNeeded = false
+    buildTasks = []
 }

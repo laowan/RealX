@@ -1,0 +1,47 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<parent>
+		<groupId>com.yy.android.mediarecord</groupId>
+		<artifactId>mediarecord-parent</artifactId>
+		<version>2.2.3.1-SNAPSHOT</version>
+	</parent>
+
+	<modelVersion>4.0.0</modelVersion>
+	<artifactId>mediarecord-sdk</artifactId>
+	<version>2.2.3.1-SNAPSHOT</version>
+	<packaging>jar</packaging>
+	<name>mediarecord-sdk</name>
+
+	<dependencies>
+        <dependency>
+            <groupId>com.google.android</groupId>
+            <artifactId>android</artifactId>
+            <version>5.0</version>
+            <scope>provided</scope>
+        </dependency>
+  	
+		<dependency>
+            <groupId>com.yy.android.mediarecord.libs</groupId>
+            <artifactId>yuv</artifactId>
+            <version>2.2.3.1-SNAPSHOT</version>
+            <classifier>armeabi-v7a</classifier>
+            <type>so</type>
+        </dependency>
+        
+        <dependency>
+            <groupId>com.yy.android.mediarecord.libs</groupId>
+            <artifactId>ycmedia</artifactId>
+            <version>2.2.3.1-SNAPSHOT</version>
+            <classifier>armeabi-v7a</classifier>
+            <type>so</type>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.ffmpeg</groupId>
+            <artifactId>ffmpeg-neon</artifactId>
+            <version>2.7.1.11</version>
+            <classifier>armeabi-v7a</classifier>
+            <type>so</type>
+        </dependency>
+        </dependencies>	 
+                
+</project>
