@@ -54,6 +54,10 @@ public class MediaProcess {
         return mMediaProcessInternal.clipVideo(inputPath, outputPath, (double) startTime / 1000, (double) duration / 1000);
     }
 
+    public void release() {
+        mMediaProcessInternal.release();
+    }
+
     public void cancel(){
         mMediaProcessInternal.cancel();
     }

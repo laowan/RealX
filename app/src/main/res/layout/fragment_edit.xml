@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools" xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/anchor_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".ContainerActivity">
+
+    <com.ycloud.api.common.BaseVideoView
+            android:id="@+id/video_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+
+    <TextView
+            android:gravity="center"
+            style="@android:style/Widget.Button"
+            android:text="Vol"
+            app:layout_constraintTop_toTopOf="parent"
+            android:layout_marginTop="@dimen/icon_margin_top"
+            android:id="@+id/vol_mode"
+            android:layout_width="@dimen/icon_size"
+            android:layout_height="@dimen/icon_size"/>
+
+</android.support.constraint.ConstraintLayout>
