@@ -27,6 +27,9 @@ public class MediaUtils {
         record = new NewVideoRecord(activity, config.surfaceView, config.resolutionType);
         try {
             record.setCameraID(config.cameraId);
+            record.setAspectRatio(config.aspectRatioType, config.aspectOffset.first, config.aspectOffset.second);
+            record.setEnableAudioRecord(config.audioEnable);
+            record.setFlashMode(config.flashMode);
         } catch (Exception e) {
             e.printStackTrace();
         }
