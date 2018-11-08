@@ -25,13 +25,16 @@ android {
     }
 
     packagingOptions {
-        exclude 'lib/armeabi-v7a/libffmpeg-neon.so'
-        exclude 'lib/armeabi-v7a/libaudioengine.so'
+//        exclude 'lib/armeabi-v7a/libaudioengine.so'
+//        exclude 'lib/armeabi-v7a/libffmpeg-neon.so'
 
+        pickFirst 'lib/armeabi-v7a/libaudioengine.so'
+        pickFirst 'lib/armeabi-v7a/libffmpeg-neon.so'
         pickFirst 'lib/armeabi-v7a/libjpeg_jni.so'
         pickFirst 'lib/armeabi-v7a/libycmedia.so'
         pickFirst 'lib/armeabi-v7a/libijkplayer.so'
         pickFirst 'lib/armeabi-v7a/libijksdl.so'
+        pickFirst 'lib/armeabi-v7a/libycmediayuv.so'
     }
 
     externalNativeBuild {
@@ -72,13 +75,17 @@ import org.apache.tools.ant.taskdefs.condition.Os
 
 def deleteJniLibso() {
     def SODIR = "$projectDir/src/main/jniLibs/armeabi-v7a"
-    File file = new File("$SODIR/libijkplayer.so")
-    file.delete();
+    File file = new File("$SODIR/libaudioengine.so")
+    file.delete()
+    file = new File("$SODIR/libffmepeg-neon.so")
+    file.delete()
+    file = new File("$SODIR/libijkplayer.so")
+    file.delete()
     file = new File("$SODIR/libijksdl.so")
-    file.delete();
+    file.delete()
     file = new File("$SODIR/libycmedia.so")
     file.delete()
-    file = new File("$SODIR/libyuv.so")
+    file = new File("$SODIR/libycmediayuv.so")
     file.delete()
     file = new File("$SODIR/libjpeg_jni.so")
     file.delete()
@@ -129,10 +136,12 @@ ndkBuild.finalizedBy packSymbolsSo
 task copyTask(type: Copy) {
     deleteJniLibso()
     def NDK_OUT_DIR = "$projectDir/libs/armeabi-v7a"
+    from "$NDK_OUT_DIR/libaudioengine.so"
+    from "$NDK_OUT_DIR/libffmepeg-neon.so"
     from "$NDK_OUT_DIR/libijkplayer.so"
     from "$NDK_OUT_DIR/libijksdl.so"
     from "$NDK_OUT_DIR/libycmedia.so"
-    from "$NDK_OUT_DIR/libyuv.so"
+    from "$NDK_OUT_DIR/libycmediayuv.so"
     from "$NDK_OUT_DIR/libjpeg_jni.so"
     //from "$NDK_OUT_DIR/libst_mobile.so"
     //from "$NDK_OUT_DIR/libstmobile_jni.so"
