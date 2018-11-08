@@ -90,6 +90,7 @@ class EditFragment : Fragment() {
             Log.d(TAG, "LogPath():$log")
             vol_mode.setOnClickListener {
                 val mode = vol.incrementAndGet() % TunerMode.size
+                vol_mode.text = String.format(Locale.getDefault(), "Vol(%d)", mode)
                 tunerWithMode(audio, TunerMode[mode], log)
             }
         }
