@@ -2,8 +2,9 @@ package com.yy.media;
 
 import android.arch.lifecycle.Lifecycle;
 import android.arch.lifecycle.LifecycleObserver;
+import android.arch.lifecycle.LifecycleOwner;
 import android.arch.lifecycle.OnLifecycleEvent;
-import android.support.v7.app.AppCompatActivity;
+import android.content.Context;
 import android.util.Log;
 import com.ycloud.api.videorecord.IVideoRecord;
 import com.ycloud.api.videorecord.NewVideoRecord;
@@ -15,16 +16,16 @@ public class MediaUtils {
     /**
      * 获取录制实例
      *
-     * @param activity
+     * @param context
      * @param config
      * @return
      */
-    public static final IVideoRecord prepare(AppCompatActivity activity, MediaConfig config) {
+    public static final IVideoRecord prepare(Context context, MediaConfig config) {
         IVideoRecord record;
         if (null == config.surfaceView) {
-            config.surfaceView = new VideoSurfaceView(activity);
+            config.surfaceView = new VideoSurfaceView(context);
         }
-        record = new NewVideoRecord(activity, config.surfaceView, config.resolutionType);
+        record = new NewVideoRecord(context, config.surfaceView, config.resolutionType);
         try {
             record.setCameraID(config.cameraId);
             record.setAspectRatio(config.aspectRatioType, config.aspectOffset.first, config.aspectOffset.second);
@@ -33,9 +34,12 @@ public class MediaUtils {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        //activity生命周期回调
-        _LifecycleObserver observer = new _LifecycleObserver(activity.getLifecycle(), record);
-        activity.getLifecycle().addObserver(observer);
+        //生命周期绑定
+        if (context instanceof LifecycleOwner) {
+            Lifecycle lifecycle = ((LifecycleOwner) context).getLifecycle();
+            _LifecycleObserver observer = new _LifecycleObserver(lifecycle, record);
+            lifecycle.addObserver(observer);
+        }
         //返回handle实例
         return record;
     }
@@ -86,5 +90,23 @@ public class MediaUtils {
             }
             this.lifecycle.removeObserver(this);
         }
+    }
+
+    /**
+     * 合成音频文件到视频中
+     *
+     * @param config
+     */
+    public static final void fireAudio(MediaConfig config) {
+
+    }
+
+    /**
+     * 音频文件调整
+     *
+     * @param config
+     */
+    public static final void reduxAudio(MediaConfig config) {
+
     }
 }

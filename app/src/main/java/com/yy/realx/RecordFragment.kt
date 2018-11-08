@@ -1,10 +1,11 @@
 package com.yy.realx
 
-import android.Manifest
-import android.os.Build
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
+import android.support.v4.app.Fragment
 import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import com.ycloud.api.videorecord.IVideoRecord
 import com.ycloud.api.videorecord.IVideoRecordListener
 import com.ycloud.camera.utils.CameraUtils
@@ -15,48 +16,39 @@ import com.yy.media.MediaUtils
 import kotlinx.android.synthetic.main.activity_splash.*
 import java.io.File
 
-class SplashActivity : AppCompatActivity() {
+class RecordFragment : Fragment() {
     companion object {
-        private var TAG = SplashActivity::class.java.simpleName
-        private const val PERMISSION_CODE = 0x00001
+        private var TAG = RecordFragment::class.java.simpleName
+    }
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        return inflater.inflate(R.layout.activity_splash, container, false)
+    }
+
+    override fun onActivityCreated(savedInstanceState: Bundle?) {
+        super.onActivityCreated(savedInstanceState)
+        preparePreview()
     }
 
     private lateinit var mRecordConfig: MediaConfig
     private lateinit var mVideoRecord: IVideoRecord
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_splash)
-        preparePreview()
-        //权限请求
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            requestPermissions(
-                arrayOf(
-                    Manifest.permission.CAMERA,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                    Manifest.permission.READ_EXTERNAL_STORAGE,
-                    Manifest.permission.RECORD_AUDIO
-                ), PERMISSION_CODE
-            )
-        }
-    }
-
     private var isRecording = false
     private var mRecordListener = object : IVideoRecordListener {
         override fun onProgress(seconds: Float) {
-            runOnUiThread {
+            activity!!.runOnUiThread {
 
             }
         }
 
         override fun onStart(successed: Boolean) {
-            runOnUiThread {
+            activity!!.runOnUiThread {
                 toggle_record.setImageResource(R.drawable.btn_stop_record)
             }
         }
 
         override fun onStop(successed: Boolean) {
-            runOnUiThread {
+            activity!!.runOnUiThread {
                 toggle_record.setImageResource(R.drawable.btn_start_record)
             }
         }
@@ -68,7 +60,8 @@ class SplashActivity : AppCompatActivity() {
     private fun preparePreview() {
         Log.d(TAG, "preparePreview():${lifecycle.currentState}")
         mRecordConfig = MediaConfig.Builder().attach(video_view).build()
-        mVideoRecord = MediaUtils.prepare(this, mRecordConfig)
+        mVideoRecord = MediaUtils.prepare(context, mRecordConfig)
+        lifecycle
         //事件绑定
         toggle_camera.setOnClickListener {
             mVideoRecord.switchCamera()
