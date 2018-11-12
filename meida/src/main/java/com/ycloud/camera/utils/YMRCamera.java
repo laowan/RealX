@@ -34,8 +34,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static com.ycloud.api.config.AspectRatioType.ASPECT_RATIO_1_1;
-
 /**
  * Created by kele on 2017/4/14.
  */
@@ -705,8 +703,8 @@ public class YMRCamera {
         int tryCount = 3;
         STMobileFaceDetectionWrapper.FacePointInfo point = null;
         while (tryCount > 0) {
-            STMobileFaceDetectionWrapper.getPIctureInstance(mContext).onVideoFrame(pixBuf.array(), 0, width, height, true);
-            point = STMobileFaceDetectionWrapper.getPIctureInstance(mContext.getApplicationContext()).getCurrentFacePointInfo();
+            STMobileFaceDetectionWrapper.getPictureInstance(mContext).onVideoFrame(pixBuf.array(), 0, width, height, true);
+            point = STMobileFaceDetectionWrapper.getPictureInstance(mContext.getApplicationContext()).getCurrentFacePointInfo();
             tryCount--;
             if (point != null && point.mFaceCount != 0) {
                 break;

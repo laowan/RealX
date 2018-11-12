@@ -218,7 +218,7 @@ public class STMobileFaceDetectionWrapper implements Camera.PreviewCallback, ICa
         return mInstance;
     }
 
-    public static STMobileFaceDetectionWrapper getPIctureInstance(Context context) {
+    public static STMobileFaceDetectionWrapper getPictureInstance(Context context) {
         if (mInstancePicture == null) {
             synchronized (STMobileFaceDetectionWrapper.class) {
                 if (mInstancePicture == null && context != null) {

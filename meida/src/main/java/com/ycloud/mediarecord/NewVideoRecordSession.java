@@ -331,7 +331,7 @@ public class NewVideoRecordSession implements ICameraEventListener, SurfaceHolde
             mVideoFilterContext.getGLManager().post(new Runnable() {
                 @Override
                 public void run() {
-                    STMobileFaceDetectionWrapper.getPIctureInstance(mContext.getApplicationContext());
+                    STMobileFaceDetectionWrapper.getPictureInstance(mContext.getApplicationContext());
                 }
             });
         }

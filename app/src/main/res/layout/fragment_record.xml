@@ -73,16 +73,15 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
-    <TextView
+    <ImageButton
             style="@style/AppTheme.Button"
-            android:minWidth="@dimen/icon_size"
-            android:text="Avatar"
             app:layout_constraintTop_toTopOf="@id/toggle_record"
             app:layout_constraintBottom_toBottomOf="@id/toggle_record"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/toggle_record"
             android:id="@+id/btn_avatar"
-            android:layout_width="wrap_content"
+            android:src="@drawable/ic_launcher"
+            android:layout_width="@dimen/icon_size"
             android:layout_height="@dimen/icon_size"/>
 
     <TextView

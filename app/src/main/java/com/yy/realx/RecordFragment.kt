@@ -1,8 +1,12 @@
 package com.yy.realx
 
+import android.app.Activity
 import android.app.ProgressDialog
 import android.arch.lifecycle.ViewModelProviders
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.support.v4.app.Fragment
 import android.util.Log
 import android.view.LayoutInflater
@@ -50,6 +54,7 @@ class RecordFragment : Fragment() {
         private val SpeedMode = arrayOf(
             0.2f, 0.5f, 1.0f, 2.0f, 4.0f
         )
+        private const val REQUEST_AVATAR = 0x0f02
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -243,6 +248,59 @@ class RecordFragment : Fragment() {
         } else {
             wrapper.removeFilter(effect)
             effect = FilterIDManager.NO_ID
+        }
+        //选择图片
+        val intent = Intent(Intent.ACTION_PICK)
+        intent.data = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        startActivityForResult(intent, REQUEST_AVATAR)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode != Activity.RESULT_OK) {
+            return
+        }
+        when (requestCode) {
+            REQUEST_AVATAR -> {
+                val uri = data?.data ?: return
+                Log.d(TAG, "onActivityResult():$uri")
+                mTimer.schedule(0) {
+                    prepareAvatar(uri)
+                }
+            }
+            else -> {
+                Log.d(TAG, "onActivityResult():$requestCode")
+            }
+        }
+    }
+
+    /**
+     * 人脸检测
+     */
+    private fun prepareAvatar(uri: Uri) {
+        val projections = arrayOf(
+            MediaStore.Video.Media.DATA,
+            MediaStore.Video.Media.WIDTH,
+            MediaStore.Video.Media.HEIGHT
+        )
+        val cursor = context!!.contentResolver.query(uri, projections, null, null, null)
+        checkNotNull(cursor)
+        var path = ""
+        var width = 0
+        var height = 0
+        if (cursor.moveToFirst()) {
+            path = cursor.getString(cursor.getColumnIndexOrThrow(projections[0]))
+            width = cursor.getInt(cursor.getColumnIndexOrThrow(projections[1]))
+            height = cursor.getInt(cursor.getColumnIndexOrThrow(projections[2]))
+        }
+        cursor.close()
+        Log.d(TAG, "prepareAvatar():$path, $width, $height")
+        if (path.isBlank()) {
+            return
+        }
+        activity!!.runOnUiThread {
+            val avatar = AvatarDialogFragment.newInstance(path, width, height)
+            avatar.showNow(childFragmentManager, AvatarDialogFragment::class.java.simpleName)
         }
     }
 

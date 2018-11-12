@@ -12,7 +12,6 @@ import com.ycloud.api.common.SDKCommonCfg;
 import com.ycloud.api.process.ImageProcessListener;
 import com.ycloud.common.GlobalConfig;
 import com.ycloud.facedetection.IFaceDetectionListener;
-import com.ycloud.facedetection.VenusGestureDetectWrapper;
 import com.ycloud.facedetection.STMobileFaceDetectionWrapper;
 import com.ycloud.facedetection.VenusSegmentWrapper;
 import com.ycloud.gpuimagefilter.utils.FilterDataStore;
@@ -224,7 +223,7 @@ public class ImageProcessFilterGroup extends FilterGroup {
         }
         FilterDataStore.OperResult<Integer, BaseFilter> effectRes = mFilterStore.getFilterInfoByType(FilterType.GPUFILTER_EFFECT, kFilterStoreID);
         if (effectRes.mFilterCopyOnWriteList != null && !effectRes.mFilterCopyOnWriteList.isEmpty()) {
-            boolean flag = STMobileFaceDetectionWrapper.getPIctureInstance(mContext).isStMobileInitiated();
+            boolean flag = STMobileFaceDetectionWrapper.getPictureInstance(mContext).isStMobileInitiated();
             if (flag && isFaceDetect) {
                 mFaceDetectionListener.onFaceStatus(IFaceDetectionListener.HAS_FACE);
             }
@@ -234,7 +233,7 @@ public class ImageProcessFilterGroup extends FilterGroup {
     }
 
     private STMobileFaceDetectionWrapper.FacePointInfo bodyInfoDetectPicture(Context context, YYMediaSample sample) {
-        STMobileFaceDetectionWrapper.FacePointInfo humanBodyPointInfo = STMobileFaceDetectionWrapper.getPIctureInstance(context).getCurrentFacePointInfo();
+        STMobileFaceDetectionWrapper.FacePointInfo humanBodyPointInfo = STMobileFaceDetectionWrapper.getPictureInstance(context).getCurrentFacePointInfo();
         if (mNeedCheckBody) {
             sample.mBodyFrameDataArr = new OrangeFilter.OF_BodyFrameData[0];
         }
@@ -269,13 +268,13 @@ public class ImageProcessFilterGroup extends FilterGroup {
             boolean needCheckFaceBefore = mNeedCheckFace;
             mNeedCheckFace = (requiredFrameData & OrangeFilter.OF_RequiredFrameData_FaceLandmarker) > 0;
             if (needCheckFaceBefore != mNeedCheckFace) {
-                STMobileFaceDetectionWrapper.getPIctureInstance(mContext).setIsCheckFace(mNeedCheckFace);
+                STMobileFaceDetectionWrapper.getPictureInstance(mContext).setIsCheckFace(mNeedCheckFace);
             }
 
             //肢体信息
             mNeedCheckBody = (requiredFrameData & OrangeFilter.OF_RequiredFrameData_Body) > 0;
-            if (STMobileFaceDetectionWrapper.getPIctureInstance(mContext).getEnableBodyDetect() != mNeedCheckBody) {
-                STMobileFaceDetectionWrapper.getPIctureInstance(mContext).setEnableBodyDetect(mNeedCheckBody);
+            if (STMobileFaceDetectionWrapper.getPictureInstance(mContext).getEnableBodyDetect() != mNeedCheckBody) {
+                STMobileFaceDetectionWrapper.getPictureInstance(mContext).setEnableBodyDetect(mNeedCheckBody);
             }
 
             //手势信息
@@ -302,21 +301,21 @@ public class ImageProcessFilterGroup extends FilterGroup {
                     int tryCount = 1;                   // 商汤图片模型识别一次就够了，一次识别不了，多次也是白搭
                     boolean isDetectFace = false;
                     while (tryCount > 0) {
-                        STMobileFaceDetectionWrapper.getPIctureInstance(mContext).setIsCheckFace(true);
-                        STMobileFaceDetectionWrapper.getPIctureInstance(mContext).onVideoFrameEx(sample.mRgbaBytes, sample.mWidth, sample.mHeight, true,true);
+                        STMobileFaceDetectionWrapper.getPictureInstance(mContext).setIsCheckFace(true);
+                        STMobileFaceDetectionWrapper.getPictureInstance(mContext).onVideoFrameEx(sample.mRgbaBytes, sample.mWidth, sample.mHeight, true,true);
                         faceAndBodyPointInfo = bodyInfoDetectPicture(mContext, sample);
                         isDetectFace = isDetectFace(faceAndBodyPointInfo);
                         tryCount--;
                         if (isDetectFace) {
                             break;
                         }
-                        STMobileFaceDetectionWrapper.getPIctureInstance(mContext).releaseFacePointInfo(faceAndBodyPointInfo);
+                        STMobileFaceDetectionWrapper.getPictureInstance(mContext).releaseFacePointInfo(faceAndBodyPointInfo);
                     }
                     YYLog.info(TAG, "isDetectFace : " + isDetectFace);
                     if (mNeedCheckFace) {
                         onFaceDetectCallback(isDetectFace);
                     }
-                    STMobileFaceDetectionWrapper.getPIctureInstance(mContext).releaseFacePointInfo(faceAndBodyPointInfo);
+                    STMobileFaceDetectionWrapper.getPictureInstance(mContext).releaseFacePointInfo(faceAndBodyPointInfo);
                 } else {
                     YYLog.info(TAG, "Human action detecting have done before.");
                 }
