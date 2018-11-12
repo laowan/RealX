@@ -1,7 +1,6 @@
 package com.yy.realx
 
 import android.app.ProgressDialog
-import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
 import android.support.v4.app.Fragment
@@ -14,10 +13,12 @@ import com.ycloud.api.common.FilterType
 import com.ycloud.api.common.SDKCommonCfg
 import com.ycloud.api.process.IMediaListener
 import com.ycloud.api.process.MediaProcess
+import com.ycloud.api.process.VideoConcat
 import com.ycloud.api.videorecord.IMediaInfoRequireListener
 import com.ycloud.api.videorecord.IVideoRecord
 import com.ycloud.api.videorecord.IVideoRecordListener
 import com.ycloud.camera.utils.CameraUtils
+import com.ycloud.gpuimagefilter.utils.FilterIDManager
 import com.ycloud.gpuimagefilter.utils.FilterOPType
 import com.ycloud.mediarecord.VideoRecordConstants
 import com.ycloud.utils.FileUtils
@@ -28,6 +29,7 @@ import kotlinx.android.synthetic.main.fragment_record.*
 import java.io.File
 import java.io.FileOutputStream
 import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import kotlin.concurrent.schedule
@@ -35,6 +37,19 @@ import kotlin.concurrent.schedule
 class RecordFragment : Fragment() {
     companion object {
         private var TAG = RecordFragment::class.java.simpleName
+        private val TunerMode = arrayOf(
+            "VeoNone", "VeoEthereal", "VeoThriller", "VeoLuBan", "VeoLorie",
+            "VeoUncle", "VeoDieFat", "VeoBadBoy", "VeoWarCraft", "VeoHeavyMetal",
+            "VeoCold", "VeoHeavyMechinery", "VeoTrappedBeast", "VeoPowerCurrent"
+        )
+        private val TunerName = arrayOf(
+            "原声", "空灵", "惊悚", "鲁班", "萝莉",
+            "大叔", "死肥仔", "熊孩子", "魔兽农民", "重金属",
+            "感冒", "重机械", "困兽", "强电流"
+        )
+        private val SpeedMode = arrayOf(
+            1.0f, 0.2f, 0.5f, 2.0f, 4.0f
+        )
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -51,24 +66,40 @@ class RecordFragment : Fragment() {
 
     private var isRecording = false
     private var mRecordListener = object : IVideoRecordListener {
+        private var duration = 0f
+
         override fun onProgress(seconds: Float) {
+            //更新数据
+            duration = seconds
+            //刷新界面
             activity!!.runOnUiThread {
-                record_ms.text = String.format(Locale.getDefault(), "%.2fs", seconds)
+                record_ms.text = String.format(Locale.getDefault(), "%.2fs", seconds + total)
             }
         }
 
+        private var total = 0f
+
         override fun onStart(successed: Boolean) {
+            //更新数据
+            duration = 0f
+            //刷新界面
             activity!!.runOnUiThread {
-                record_ms.text = String.format(Locale.getDefault(), "%.2fs", 0f)
+                total = (mModel.video.value?.duration ?: 0).toFloat() / 1000
+                record_ms.text = String.format(Locale.getDefault(), "%.2fs", total)
                 toggle_record.setImageResource(R.drawable.btn_stop_record)
             }
         }
 
         override fun onStop(successed: Boolean) {
+            //更新数据
+            val video = mModel.video.value ?: return
+            val segment = video.segmentLast()
+            segment.duration = (duration * 1000).toLong()
             activity!!.runOnUiThread {
+                //刷新界面
+                btn_finish.isEnabled = video.segments.isNotEmpty()
                 record_ms.text = ""
                 toggle_record.setImageResource(R.drawable.btn_start_record)
-                mModel.video.value = VideoSettings(mRecordConfig.videoPath)
             }
         }
     }
@@ -77,8 +108,7 @@ class RecordFragment : Fragment() {
         ViewModelProviders.of(activity!!).get(RealXViewModel::class.java)
     }
 
-    var frames = 0
-    var amplitude = 0
+    private val tuner = AtomicInteger(0)
 
     /**
      * 授权成功后回调
@@ -87,7 +117,6 @@ class RecordFragment : Fragment() {
         Log.d(TAG, "preparePreview():${lifecycle.currentState}")
         mRecordConfig = MediaConfig.Builder().attach(video_view).build()
         mVideoRecord = MediaUtils.prepare(context, mRecordConfig)
-        lifecycle
         //事件绑定
         toggle_camera.setOnClickListener {
             mVideoRecord.switchCamera()
@@ -97,7 +126,8 @@ class RecordFragment : Fragment() {
                 mRecordConfig.cameraId = VideoRecordConstants.FRONT_CAMERA
             }
         }
-        //表示是否mute
+        var frames = 0
+        var amplitude = 0
         mVideoRecord.setEnableAudioRecord(true)
         mVideoRecord.setAudioRecordListener { avgAmplitude, maxAmplitude ->
             Log.d(TAG, "onVolume():$avgAmplitude, $maxAmplitude")
@@ -113,15 +143,18 @@ class RecordFragment : Fragment() {
 
             override fun onRequireMediaInfo(info: MediaSampleExtraInfo?) {
                 Log.d(TAG, "onRequireMediaInfo():$amplitude, $frames")
+                var loudness = 0f
                 synchronized(mModel) {
-                    if (frames <= 0) {
-                        info!!.rhythmSmoothRatio = 0f
-                    } else {
-                        info!!.rhythmSmoothRatio = (amplitude / frames).toFloat()
+                    if (frames > 0) {
+                        loudness = (amplitude / frames).toFloat()
+                        frames = 0
+                        amplitude = 0
                     }
                 }
+                info?.rhythmSmoothRatio = loudness
             }
         })
+        //表示是否mute
         toggle_mute.setOnClickListener {
             val enable = mRecordConfig.audioEnable
             mVideoRecord.setEnableAudioRecord(!enable)
@@ -135,46 +168,82 @@ class RecordFragment : Fragment() {
             if (isRecording) {
                 mVideoRecord.stopRecord()
             } else {
-                var path = mRecordConfig.videoPath ?: ""
-                if (path.isNotBlank()) {
-                    FileUtils.deleteFileSafely(File(path))
+                var video = mModel.video.value
+                if (null == video) {
+                    var path = CameraUtils.getOutputMediaFile(CameraUtils.MEDIA_TYPE_VIDEO).absolutePath
+                    video = VideoSettings(path)
+                    mModel.video.value = video
                 }
-                path = CameraUtils.getOutputMediaFile(CameraUtils.MEDIA_TYPE_VIDEO).absolutePath
-                Log.d(TAG, "startRecord(): $path")
-                mVideoRecord.setOutputPath(path)
+                checkNotNull(video)
+                Log.d(TAG, "startRecord():path = ${video.path}")
+                val segment = video.segmentAt(-1)
+                checkNotNull(segment)
+                segment.tuner = TunerMode[tuner.get() % TunerMode.size]
+                segment.res = "" //todo: add resource path here
+                Log.d(TAG, "startRecord():segment = ${segment.path}")
+                mVideoRecord.setOutputPath(segment.path)
                 mVideoRecord.setRecordListener(mRecordListener)
                 mVideoRecord.startRecord(false)
-                mRecordConfig.videoPath = path
             }
             isRecording = !isRecording
         }
+        //
         btn_finish.isEnabled = false
         btn_finish.setOnClickListener {
-            extractAudioFirst()
+            checkNotNull(mModel.video.value)
+            concatVideoSegments()
         }
+        //
         btn_avatar.setOnClickListener {
-            prepareAndAttach("avatar_yy_bear")
+            prepareAndAttachAvatar("avatar_yy_bear")
         }
-        mModel.video.observe(this, Observer {
-            btn_finish.isEnabled = it!!.path.isNotBlank()
-        })
+        //
+        val speedModes = arrayOf(speed_mode_0, speed_mode_1, speed_mode_2, speed_mode_3, speed_mode_4)
+        val listener = View.OnClickListener {
+            Log.d(TAG, "SpeedModes.OnViewClick():$it")
+            if (!it.isSelected) {
+                speedModes.forEach { view ->
+                    view.isSelected = (view == it)
+                }
+                val index = speedModes.indexOf(it)
+                mVideoRecord.setRecordSpeed(SpeedMode[index])
+            }
+        }
+        speedModes.forEach {
+            Log.d(TAG, "SpeedModes.setOnClickListener():$it")
+            it.setOnClickListener(listener)
+            it.isSelected = false
+        }
+        speed_mode_2.performClick()
+        //
+        btn_voice.text = TunerName[0]
+        btn_voice.setOnClickListener {
+            btn_voice.text = TunerName[tuner.incrementAndGet() % TunerName.size]
+        }
     }
+
+    private var effect = FilterIDManager.NO_ID
 
     /**
      * 添加特效文件
      */
-    private fun prepareAndAttach(name: String) {
+    private fun prepareAndAttachAvatar(name: String) {
         val dir = File(context!!.filesDir, name)
         val avatar = File(dir, "effect0.ofeffect")
         if (!avatar.exists()) {
             extractFromAssets(name)
         }
-        val wrapper = mVideoRecord.recordFilterSessionWrapper
-        val effect = wrapper.addFilter(FilterType.GPUFILTER_EFFECT, FilterGroupType.DEFAULT_FILTER_GROUP)
-        val config = hashMapOf<Int, Any>(
-            FilterOPType.OP_SET_EFFECT_PATH to avatar.absolutePath
-        )
-        wrapper.updateFilterConf(effect, config)
+        val wrapper = mVideoRecord.recordFilterSessionWrapper ?: return
+        if (effect == FilterIDManager.NO_ID) {
+            effect = wrapper.addFilter(FilterType.GPUFILTER_EFFECT, FilterGroupType.DEFAULT_FILTER_GROUP)
+            val config = hashMapOf<Int, Any>(
+                FilterOPType.OP_SET_EFFECT_PATH to avatar.absolutePath
+            )
+            wrapper.updateFilterConf(effect, config)
+        } else {
+            wrapper.removeFilter(effect)
+            effect = FilterIDManager.NO_ID
+        }
     }
 
     /**
@@ -186,7 +255,7 @@ class RecordFragment : Fragment() {
             dir.mkdirs()
         }
         var count: Int
-        var buffer = ByteArray(2048)
+        var buffer = ByteArray(4 * 1024)
         val input = ZipInputStream(context!!.assets.open("$name.zip"))
         var entry: ZipEntry? = input.nextEntry
         while (null != entry) {
@@ -214,47 +283,91 @@ class RecordFragment : Fragment() {
         input.close()
     }
 
+    private val mTimer: Timer by lazy {
+        Timer("Record_Timer", false)
+    }
+
     /**
-     * 提取音轨
+     * 先合并视频分段
      */
-    private fun extractAudioFirst() {
-        Log.d(TAG, "extractAudioFirst()")
+    private fun concatVideoSegments() {
+        Log.d(TAG, "concatVideoSegments()")
         if (!btn_finish.isEnabled) {
             return
         }
-        val dialog = ProgressDialog.show(context, "", "处理中...", false)
+        val video = mModel.video.value
+        checkNotNull(video)
+        val list = mutableListOf<String>()
+        video.segments.forEach {
+            list.add(it.path)
+        }
+        val dialog = ProgressDialog.show(context, "", "合并中...", false)
         dialog.setCancelable(false)
         dialog.setCanceledOnTouchOutside(false)
         dialog.setOnKeyListener { dialog, keyCode, event -> true }
-        val path = mModel.video.value!!.path
-        val audio = path.replace(".mp4", ".wav")
-        val extractor = MediaProcess()
-        extractor.setMediaListener(object : IMediaListener {
+        val concat = VideoConcat(context, list as ArrayList<String>, video.path)
+        concat.setMediaListener(object : IMediaListener {
             override fun onProgress(progress: Float) {
-                Log.d(TAG, "Audio.onProgress():$progress")
-                dialog.progress = (100 * progress).toInt()
+                Log.d(TAG, "VideoConcat.onProgress():$progress")
+                dialog.progress = (50 * progress).toInt()
             }
 
             override fun onError(errType: Int, errMsg: String?) {
-                Log.d(TAG, "Audio.onError():$errType, $errMsg")
+                Log.d(TAG, "VideoConcat.onError():$errType, $errMsg")
+                concat.cancel()
+                concat.release()
                 dialog.dismiss()
-                extractor.cancel()
-                extractor.release()
             }
 
             override fun onEnd() {
-                Log.d(TAG, "Audio.onEnd()")
-                dialog.dismiss()
+                Log.d(TAG, "VideoConcat.onEnd()")
+                concat.cancel()
+                concat.release()
+                //抽取音轨
+                extractAudioFirst(dialog)
+            }
+        })
+        mTimer.schedule(0) {
+            concat.execute()
+        }
+    }
+
+    /**
+     * 提取音轨
+     */
+    private fun extractAudioFirst(dialog: ProgressDialog) {
+        Log.d(TAG, "extractAudioFirst()")
+        dialog.setMessage("提取中...")
+        val video = mModel.video.value
+        checkNotNull(video)
+        val path = video.path
+        val audio = video.audio.path
+        val extractor = MediaProcess()
+        extractor.setMediaListener(object : IMediaListener {
+            override fun onProgress(progress: Float) {
+                Log.d(TAG, "AudioExtract.onProgress():$progress")
+                dialog.progress = 50 + (50 * progress).toInt()
+            }
+
+            override fun onError(errType: Int, errMsg: String?) {
+                Log.d(TAG, "AudioExtract.onError():$errType, $errMsg")
                 extractor.cancel()
                 extractor.release()
+                dialog.dismiss()
+            }
+
+            override fun onEnd() {
+                Log.d(TAG, "AudioExtract.onEnd()")
+                extractor.cancel()
+                extractor.release()
+                dialog.dismiss()
                 //跳转
                 activity!!.runOnUiThread {
-                    mModel.audio.value = AudioSettings(audio)
                     mModel.transitTo(Stage.EDIT)
                 }
             }
         })
-        Timer("Extract_Audio", false).schedule(0) {
+        mTimer.schedule(0) {
             extractor.extractAudioTrack(path, audio)
         }
     }
@@ -277,5 +390,6 @@ class RecordFragment : Fragment() {
         Log.d(TAG, "onDestroy()")
         super.onDestroy()
         mVideoRecord.release()
+        mTimer.cancel()
     }
 }

@@ -4,8 +4,6 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.media.MediaFormat;
 import android.os.Build;
-
-import com.ycloud.api.config.RecordContants;
 import com.ycloud.common.Constant;
 import com.ycloud.common.GlobalConfig;
 import com.ycloud.datamanager.VideoDataManager;
@@ -16,6 +14,7 @@ import com.ycloud.mediaprocess.VideoConcatWithoutEncodeAndDecode;
 import com.ycloud.utils.ExecutorUtils;
 import com.ycloud.utils.FileUtils;
 import com.ycloud.utils.YYLog;
+
 import java.io.File;
 import java.util.ArrayList;
 
@@ -30,34 +29,34 @@ public class VideoConcat {
 
     private VideoConcatBase mVideoConcat;
 
-    private final String  AUDIO_TRANSCODE_TEMP_PATH;
+    private final String AUDIO_TRANSCODE_TEMP_PATH;
     private String mBackgroundMusicPath;
     private int mBackgroundMusicStart;
     private AudioTranscodeInternal mAudioTranscode;
     private IMediaListener mMediaListener;
-    private  final ArrayList<String> mVideosPathArray;
+    private final ArrayList<String> mVideosPathArray;
     public static final float ADELAY_TIME = 0.2f;
 
-    public  VideoConcat(Context context, final ArrayList<String> videosPathArray, final String outputFile){
+    public VideoConcat(Context context, final ArrayList<String> videosPathArray, final String outputFile) {
         String cacheDir = FileUtils.getDiskCacheDir(context) + File.separator;
         mVideosPathArray = videosPathArray;
-        mVideoConcat = new VideoConcatWithoutEncodeAndDecode(cacheDir,videosPathArray,outputFile);
+        mVideoConcat = new VideoConcatWithoutEncodeAndDecode(cacheDir, videosPathArray, outputFile);
         AUDIO_TRANSCODE_TEMP_PATH = cacheDir + "audioTemp.wav";
     }
 
-    public  VideoConcat(Context context, final ArrayList<String> videosPathArray, final String outputFile, int mode){
+    public VideoConcat(Context context, final ArrayList<String> videosPathArray, final String outputFile, int mode) {
         String cacheDir = FileUtils.getDiskCacheDir(context) + File.separator;
         mVideosPathArray = videosPathArray;
-        if (mode == YMRConcatEncModeCopy){
-            mVideoConcat = new VideoConcatWithoutEncodeAndDecode(cacheDir,videosPathArray,outputFile);
-        }else if(mode == YMRConcatEncModeX264){
-            mVideoConcat = new VideoConcatNeedEncodeAndDecode(videosPathArray,outputFile);
+        if (mode == YMRConcatEncModeCopy) {
+            mVideoConcat = new VideoConcatWithoutEncodeAndDecode(cacheDir, videosPathArray, outputFile);
+        } else if (mode == YMRConcatEncModeX264) {
+            mVideoConcat = new VideoConcatNeedEncodeAndDecode(videosPathArray, outputFile);
         }
 
         AUDIO_TRANSCODE_TEMP_PATH = cacheDir + "audioTemp.wav";
     }
 
-    public  void setBackgroundMusic(String backgroundMusicPath){
+    public void setBackgroundMusic(String backgroundMusicPath) {
         mBackgroundMusicPath = backgroundMusicPath;
 //        mVideoConcat.setBackgroundMusic(backgroundMusicPath);
     }
@@ -67,16 +66,20 @@ public class VideoConcat {
         mBackgroundMusicStart = start;
     }
 
-    public void setMediaListener(IMediaListener listener){
+    public void setMediaListener(IMediaListener listener) {
         mMediaListener = listener;
         mVideoConcat.setMediaListener(listener);
     }
 
-    public void cancel(){
+    public void cancel() {
         mVideoConcat.cancel();
     }
 
-    public void execute(){
+    public void release() {
+        mVideoConcat.release();
+    }
+
+    public void execute() {
         ExecutorUtils.getBackgroundExecutor(TAG).execute(new Runnable() {
             @Override
             public void run() {
@@ -85,16 +88,15 @@ public class VideoConcat {
         });
     }
 
-    public void executeInternal(){
-
-        if(GlobalConfig.getInstance().getRecordConstant().STORE_DATA_IN_MEMORY == 1) {   // 音视频数据存内存方式不用做合成
+    public void executeInternal() {
+        if (GlobalConfig.getInstance().getRecordConstant().STORE_DATA_IN_MEMORY == 1) {   // 音视频数据存内存方式不用做合成
             mMediaListener.onEnd();
-            YYLog.info(TAG,"jtzhu video concat end ...");
+            YYLog.info(TAG, "jtzhu video concat end ...");
             return;
         }
 
         long begin = System.currentTimeMillis();
-        if(mBackgroundMusicPath != null) {
+        if (mBackgroundMusicPath != null) {
             mAudioTranscode = new AudioTranscodeInternal();
             mAudioTranscode.setMediaListener(new IMediaListener() {
                 @Override
@@ -112,34 +114,31 @@ public class VideoConcat {
                 }
             });
 
-            mAudioTranscode.setPath(mBackgroundMusicPath,AUDIO_TRANSCODE_TEMP_PATH);
+            mAudioTranscode.setPath(mBackgroundMusicPath, AUDIO_TRANSCODE_TEMP_PATH);
             double videoDuration = getVideosDuration();
-            if(videoDuration<ADELAY_TIME){
+            if (videoDuration < ADELAY_TIME) {
                 return;
             }
-            mAudioTranscode.setMediaTime((double) mBackgroundMusicStart / 1000,(videoDuration-ADELAY_TIME));
+            mAudioTranscode.setMediaTime((double) mBackgroundMusicStart / 1000, (videoDuration - ADELAY_TIME));
             boolean ret = mAudioTranscode.execute();
-            if(ret == false ){
-                YYLog.info(this,"wav transcode failed");
-                if(mMediaListener != null) {
+            if (!ret) {
+                YYLog.info(this, "wav transcode failed");
+                if (mMediaListener != null) {
                     mMediaListener.onError(Constant.MediaNativeResult.FFMPEG_EXECUTE_FAIL, "wav transcode failed");
                 }
                 return;
             }
-
             mVideoConcat.setBackgroundMusic(AUDIO_TRANSCODE_TEMP_PATH);
         }
 
         mVideoConcat.setMediaNativeProgressIntervalTime(100);
         mVideoConcat.concatVideos();
 
-        if(mBackgroundMusicPath != null) {
-
+        if (mBackgroundMusicPath != null) {
             File file = new File((AUDIO_TRANSCODE_TEMP_PATH));
             file.delete();
         }
-
-        YYLog.info(this, "concat cost time "+(System.currentTimeMillis()-begin)/1000.0);
+        YYLog.info(this, "concat cost time " + (System.currentTimeMillis() - begin) / 1000.0);
     }
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
@@ -162,7 +161,7 @@ public class VideoConcat {
             }
         } else {
             MediaFormat format = VideoDataManager.instance().getVideoMediaFormat();
-            if(format != null && format.containsKey(MediaFormat.KEY_DURATION)) {
+            if (format != null && format.containsKey(MediaFormat.KEY_DURATION)) {
                 ret = format.getLong(MediaFormat.KEY_DURATION);
             }
         }

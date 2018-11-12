@@ -13,28 +13,32 @@
             android:layout_height="match_parent"/>
 
     <TextView
-            style="@android:style/Widget.Button"
-            android:gravity="center"
+            style="@style/AppTheme.Button"
             android:text="Next"
+            android:minWidth="@dimen/icon_size"
+            android:layout_marginEnd="@dimen/icon_margin_end"
             android:layout_marginTop="@dimen/icon_margin_top"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             android:id="@+id/btn_finish"
-            android:layout_width="@dimen/icon_size"
+            android:layout_width="wrap_content"
             android:layout_height="@dimen/icon_size"/>
 
-    <ImageButton
+    <TextView
+            style="@style/AppTheme.Button"
+            android:text="Switch"
+            android:minWidth="@dimen/icon_size"
+            android:layout_marginStart="@dimen/icon_margin_start"
             android:scaleType="centerCrop"
             android:layout_marginTop="@dimen/icon_margin_top"
             android:id="@+id/toggle_camera"
-            android:tint="@android:color/black"
-            android:layout_width="@dimen/icon_size"
+            android:layout_width="wrap_content"
             android:layout_height="@dimen/icon_size"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            android:src="@mipmap/btn_toggle_camera"/>
+            app:layout_constraintStart_toStartOf="parent"/>
 
     <ImageButton
+            android:visibility="gone"
             android:scaleType="centerCrop"
             android:layout_marginTop="@dimen/icon_margin_top"
             android:id="@+id/toggle_mute"
@@ -44,17 +48,6 @@
             app:layout_constraintStart_toEndOf="@id/toggle_camera"
             app:layout_constraintTop_toTopOf="parent"
             android:src="@mipmap/btn_mic_not_mute"/>
-
-    <TextView
-            style="@android:style/Widget.Button"
-            android:gravity="center"
-            android:text="Avatar"
-            android:layout_marginTop="@dimen/icon_margin_top"
-            app:layout_constraintStart_toEndOf="@id/toggle_mute"
-            app:layout_constraintTop_toTopOf="parent"
-            android:id="@+id/btn_avatar"
-            android:layout_width="@dimen/icon_size"
-            android:layout_height="@dimen/icon_size"/>
 
     <ImageButton
             android:layout_marginBottom="@dimen/ring_margin_bottom"
@@ -79,5 +72,79 @@
             android:id="@+id/record_ms"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
+
+    <TextView
+            style="@style/AppTheme.Button"
+            android:minWidth="@dimen/icon_size"
+            android:text="Avatar"
+            app:layout_constraintTop_toTopOf="@id/toggle_record"
+            app:layout_constraintBottom_toBottomOf="@id/toggle_record"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/toggle_record"
+            android:id="@+id/btn_avatar"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/icon_size"/>
+
+    <TextView
+            style="@style/AppTheme.Button"
+            android:minWidth="@dimen/icon_size"
+            app:layout_constraintTop_toTopOf="@id/toggle_record"
+            app:layout_constraintBottom_toBottomOf="@id/toggle_record"
+            app:layout_constraintEnd_toStartOf="@id/toggle_record"
+            app:layout_constraintStart_toStartOf="parent"
+            android:id="@+id/btn_voice"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/icon_size"/>
+
+    <LinearLayout
+            android:clipChildren="true"
+            android:layout_marginBottom="@dimen/ring_margin_bottom"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/toggle_record"
+            android:background="@drawable/btn_background"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+        <TextView
+                android:textColor="@color/toggle_text_color"
+                android:background="@drawable/toggle_background_start"
+                android:text="0.2X"
+                android:gravity="center"
+                android:id="@+id/speed_mode_0"
+                android:layout_width="@dimen/icon_size"
+                android:layout_height="@dimen/toggle_size"/>
+        <TextView
+                android:textColor="@color/toggle_text_color"
+                android:background="@drawable/toggle_background"
+                android:text="0.5X"
+                android:gravity="center"
+                android:id="@+id/speed_mode_1"
+                android:layout_width="@dimen/icon_size"
+                android:layout_height="@dimen/toggle_size"/>
+        <TextView
+                android:textColor="@color/toggle_text_color"
+                android:background="@drawable/toggle_background"
+                android:text="1.0X"
+                android:gravity="center"
+                android:id="@+id/speed_mode_2"
+                android:layout_width="@dimen/icon_size"
+                android:layout_height="@dimen/toggle_size"/>
+        <TextView
+                android:textColor="@color/toggle_text_color"
+                android:background="@drawable/toggle_background"
+                android:text="2.0X"
+                android:gravity="center"
+                android:id="@+id/speed_mode_3"
+                android:layout_width="@dimen/icon_size"
+                android:layout_height="@dimen/toggle_size"/>
+        <TextView
+                android:textColor="@color/toggle_text_color"
+                android:background="@drawable/toggle_background_end"
+                android:text="4.0X"
+                android:gravity="center"
+                android:id="@+id/speed_mode_4"
+                android:layout_width="@dimen/icon_size"
+                android:layout_height="@dimen/toggle_size"/>
+    </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>

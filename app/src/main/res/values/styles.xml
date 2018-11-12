@@ -8,7 +8,18 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
-    <style name="AppThem.Fullscreen" parent="AppTheme">
+    <style name="AppTheme.Fullscreen" parent="AppTheme">
         <item name="android:windowFullscreen">true</item>
+    </style>
+
+    <style name="AppTheme.Button">
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+        <item name="android:paddingStart">@dimen/btn_padding_start</item>
+        <item name="android:paddingEnd">@dimen/btn_padding_end</item>
+        <item name="android:gravity">center</item>
+        <item name="android:background">@drawable/btn_background</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/btn_text_color</item>
     </style>
 </resources>

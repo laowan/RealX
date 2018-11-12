@@ -17,11 +17,8 @@ import com.ycloud.utils.FileUtils
 import com.yy.android.ai.audiodsp.IOneKeyTunerApi
 import kotlinx.android.synthetic.main.fragment_edit.*
 import java.io.File
-import java.io.FileOutputStream
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
 import kotlin.concurrent.schedule
 import kotlin.concurrent.scheduleAtFixedRate
 
@@ -33,9 +30,6 @@ class EditFragment : Fragment() {
             "VeoNone", "VeoEthereal", "VeoThriller", "VeoLuBan", "VeoLorie",
             "VeoUncle", "VeoDieFat", "VeoBadBoy", "VeoWarCraft", "VeoHeavyMetal",
             "VeoCold", "VeoHeavyMechinery", "VeoTrappedBeast", "VeoPowerCurrent"
-        )
-        private val SpeedMode = arrayOf(
-            1.0f, 0.2f, 0.5f, 2.0f, 4.0f
         )
     }
 
@@ -72,10 +66,7 @@ class EditFragment : Fragment() {
                     //todo: 准备完成，开始播放
                 }
                 MediaPlayerListener.MSG_PLAY_COMPLETED -> {
-                    //todo: 播放完毕，重新开始
-                    if (mModel.video.value!!.looping) {
-                        mViewInternal.start()
-                    }
+                    mViewInternal.start()
                 }
                 MediaPlayerListener.MSG_PLAY_SEEK_COMPLETED -> {
                     //todo: seek完成，准备播放
@@ -83,33 +74,23 @@ class EditFragment : Fragment() {
             }
         }
         //设定数据
-        val path = mModel.video.value!!.path
+        val video = mModel.video.value
+        checkNotNull(video)
+        val path = video.path
         Log.d(TAG, "VideoPath():$path")
         mViewInternal.setVideoPath(path)
-        val audio = mModel.audio.value
-        if (audio != null) {
-            Log.d(TAG, "AudioPath():${audio.path}")
-            val music = VideoFilter(context)
-            music.setBackgroundMusic(audio.path, 0.0f, 1.0f, audio.start)
-            mViewInternal.setVFilters(music)
-        }
+        val audio = video.audio
+        Log.d(TAG, "AudioPath():${audio.path}")
+        val music = VideoFilter(context)
+        music.setBackgroundMusic(audio.path, 0.0f, 1.0f, audio.start)
+        mViewInternal.setVFilters(music)
         //功能
-        if (audio != null) {
-            val log = path.replace(".mp4", ".log")
-            Log.d(TAG, "LogPath():$log")
-            vol_mode.setOnClickListener {
-                val mode = vol.incrementAndGet() % TunerMode.size
-                vol_mode.text = String.format(Locale.getDefault(), "Vol(%d)", mode)
-                tunerWithMode(audio, TunerMode[mode], log)
-            }
-        }
-        speed_mode.setOnClickListener {
-            val speed = speed.incrementAndGet() % SpeedMode.size
-            speed_mode.text = String.format(Locale.getDefault(), "Speed(%d)", speed)
-            setSpeed(SpeedMode[speed])
-        }
-        btn_avatar.setOnClickListener {
-            prepareAndAttach("avatar_yy_bear")
+        val log = path.replace(".mp4", ".log")
+        Log.d(TAG, "LogPath():$log")
+        vol_mode.setOnClickListener {
+            val mode = vol.incrementAndGet() % TunerMode.size
+            vol_mode.text = String.format(Locale.getDefault(), "Vol(%d)", mode)
+            tunerWithMode(audio, TunerMode[mode], log)
         }
         export_video.setOnClickListener {
             exportVideoWithParams()
@@ -117,60 +98,12 @@ class EditFragment : Fragment() {
     }
 
     /**
-     * 添加特效文件
-     */
-    private fun prepareAndAttach(name: String) {
-        val dir = File(context!!.filesDir, name)
-        val avatar = File(dir, "effect0.ofeffect")
-        if (!avatar.exists()) {
-            extractFromAssets(name)
-        }
-    }
-
-    /**
-     * 解压特效文件
-     */
-    private fun extractFromAssets(name: String) {
-        val dir = File(context!!.filesDir, name)
-        if (!dir.exists()) {
-            dir.mkdirs()
-        }
-        var count: Int
-        var buffer = ByteArray(2048)
-        val input = ZipInputStream(context!!.assets.open("$name.zip"))
-        var entry: ZipEntry? = input.nextEntry
-        while (null != entry) {
-            if (entry.isDirectory) {
-                File(dir, entry.name).mkdirs()
-            } else {
-                val file = File(dir, entry.name)
-                if (file.exists()) {
-                    FileUtils.deleteFileSafely(file)
-                }
-                val output = FileOutputStream(file)
-                while (true) {
-                    count = input.read(buffer)
-                    if (count <= 0) {
-                        break
-                    } else {
-                        output.write(buffer, 0, count)
-                    }
-                }
-                output.flush()
-                output.close()
-            }
-            entry = input.nextEntry
-        }
-        input.close()
-    }
-
-    /**
      * 导出视频
      */
     private fun exportVideoWithParams() {
         val video = mModel.video.value ?: return
-        val out = video.path.replace(".mp4", "_share.mp4")
-        val audio = mModel.audio.value ?: return
+        val out = video.export
+        val audio = video.audio
         val dialog = ProgressDialog.show(context, "", "导出中...", false)
         dialog.setCancelable(false)
         dialog.setCanceledOnTouchOutside(false)
@@ -179,29 +112,26 @@ class EditFragment : Fragment() {
         filter.exportBgm = audio.tuner ?: audio.path
         filter.setBackgroundMusic(filter.exportBgm, 0.0f, 1.0f, audio.start)
         val export = VideoExport(context, video.path, out, filter)
-//        export.setExportVideoQuality(30f)
-//        export.setMaxExportBitrate(30f)
         export.setMediaListener(object : IMediaListener {
             override fun onProgress(progress: Float) {
-                Log.d(TAG, "Export.onProgress():$progress")
+                Log.d(TAG, "VideoExport.onProgress():$progress")
                 dialog.progress = (100 * progress).toInt()
             }
 
             override fun onError(errType: Int, errMsg: String?) {
-                Log.d(TAG, "Export.onError():$errMsg, $errMsg")
+                Log.d(TAG, "VideoExport.onError():$errMsg, $errMsg")
                 export.cancel()
                 export.release()
                 dialog.dismiss()
             }
 
             override fun onEnd() {
-                Log.d(TAG, "Export.onEnd()")
+                Log.d(TAG, "VideoExport.onEnd()")
                 export.cancel()
                 export.release()
                 dialog.dismiss()
                 //进入分享页面
                 activity!!.runOnUiThread {
-                    video.export = out
                     mModel.transitTo(Stage.SHARE)
                 }
             }
@@ -241,14 +171,14 @@ class EditFragment : Fragment() {
                 -1 -> {
                     Log.d(TAG, "VolProcessError()$progress")
                     IOneKeyTunerApi.Destroy()
-                    dialog.dismiss()
                     cancel()
+                    dialog.dismiss()
                 }
                 100 -> {
                     Log.d(TAG, "VolProcessFinish()$progress")
                     IOneKeyTunerApi.Destroy()
-                    dialog.dismiss()
                     cancel()
+                    dialog.dismiss()
                     //变声完成，修改背景音乐
                     audio.mode = mode
                     audio.tuner = out
@@ -277,7 +207,7 @@ class EditFragment : Fragment() {
     private var listener: TimerTask? = null
 
     private val mTimer: Timer by lazy {
-        Timer("Progress_Timer", false)
+        Timer("Edit_Timer", false)
     }
 
     /**
@@ -332,7 +262,6 @@ class EditFragment : Fragment() {
     private fun release() {
         Log.d(TAG, "release()")
         pause()
-        mTimer.cancel()
         mViewInternal.stopPlayback()
     }
 
@@ -351,5 +280,6 @@ class EditFragment : Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         release()
+        mTimer.cancel()
     }
 }

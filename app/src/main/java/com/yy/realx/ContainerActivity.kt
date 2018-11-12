@@ -9,6 +9,8 @@ import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
+import com.ycloud.utils.FileUtils
+import java.io.File
 
 class ContainerActivity : AppCompatActivity() {
     companion object {
@@ -114,5 +116,21 @@ class ContainerActivity : AppCompatActivity() {
                 mModel.transitTo(Stage.RECORD)
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        release()
+    }
+
+    /**
+     * 删除临时文件
+     */
+    private fun release() {
+        val video = mModel.video.value ?: return
+        video.segments.forEach {
+            FileUtils.deleteFileSafely(File(it.path))
+        }
+        FileUtils.deleteFileSafely(File(video.audio.path))
     }
 }

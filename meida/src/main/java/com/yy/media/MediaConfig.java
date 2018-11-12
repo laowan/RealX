@@ -16,8 +16,6 @@ public class MediaConfig {
     public Pair<Integer, Integer> aspectOffset = new Pair<>(0, 0);
     public boolean audioEnable = true;
     public String flashMode = FlashMode.FLASH_MODE_AUTO;
-    //muxer参数
-    public String videoPath;
 
     /**
      * 私有构造函数
