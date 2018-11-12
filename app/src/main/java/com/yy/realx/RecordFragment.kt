@@ -99,7 +99,7 @@ class RecordFragment : Fragment() {
             //更新数据
             val video = mModel.video.value ?: return
             val segment = video.segmentLast()
-            segment.duration = (duration * 1000).toLong()
+            segment.duration = (duration * 1000).toInt()
             activity!!.runOnUiThread {
                 //刷新界面
                 btn_finish.isEnabled = video.segments.isNotEmpty()
@@ -184,7 +184,7 @@ class RecordFragment : Fragment() {
                 val segment = video.segmentAt(-1)
                 checkNotNull(segment)
                 segment.tuner = TunerMode[tuner.get() % TunerMode.size]
-                segment.res = "" //todo: add resource path here
+                segment.res = resPath
                 Log.d(TAG, "startRecord():segment = ${segment.path}")
                 mVideoRecord.setOutputPath(segment.path)
                 mVideoRecord.setRecordListener(mRecordListener)
@@ -274,32 +274,28 @@ class RecordFragment : Fragment() {
         }
     }
 
+    private var resPath = ""
+
     /**
      * 人脸检测
      */
     private fun prepareAvatar(uri: Uri) {
-        val projections = arrayOf(
-            MediaStore.Video.Media.DATA,
-            MediaStore.Video.Media.WIDTH,
-            MediaStore.Video.Media.HEIGHT
-        )
+        val projections = arrayOf(MediaStore.Video.Media.DATA)
         val cursor = context!!.contentResolver.query(uri, projections, null, null, null)
         checkNotNull(cursor)
         var path = ""
-        var width = 0
-        var height = 0
         if (cursor.moveToFirst()) {
             path = cursor.getString(cursor.getColumnIndexOrThrow(projections[0]))
-            width = cursor.getInt(cursor.getColumnIndexOrThrow(projections[1]))
-            height = cursor.getInt(cursor.getColumnIndexOrThrow(projections[2]))
         }
         cursor.close()
-        Log.d(TAG, "prepareAvatar():$path, $width, $height")
+        Log.d(TAG, "prepareAvatar():$path")
         if (path.isBlank()) {
             return
         }
+        resPath = path
         activity!!.runOnUiThread {
-            val avatar = AvatarDialogFragment.newInstance(path, width, height)
+            btn_avatar.setImageURI(Uri.fromFile(File(path)))
+            val avatar = AvatarDialogFragment.newInstance(path)
             avatar.showNow(childFragmentManager, AvatarDialogFragment::class.java.simpleName)
         }
     }

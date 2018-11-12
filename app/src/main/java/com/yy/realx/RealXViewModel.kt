@@ -67,12 +67,11 @@ data class VideoSettings(val path: String) {
 data class VideoSegment(val index: Int, val path: String) {
     var tuner: String = ""
     var res: String = ""
-    var duration: Long = 0
+    var duration = 0
 }
 
 data class AudioSettings(val path: String, val start: Int = 0) {
-    var mode: String? = null
-    var tuner: String? = null
+    var tuner: String = path.replace(".wav", "_tuner.wav")
 }
 
 enum class Stage {

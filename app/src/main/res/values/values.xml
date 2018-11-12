@@ -12,4 +12,5 @@
     <dimen name="btn_radius">8dp</dimen>
     <dimen name="btn_padding_start">8dp</dimen>
     <dimen name="btn_padding_end">8dp</dimen>
+    <dimen name="btn_bolder_width">2dp</dimen>
 </resources>
