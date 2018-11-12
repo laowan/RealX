@@ -34,6 +34,18 @@
             android:layout_height="@dimen/icon_size"/>
 
     <TextView
+            android:enabled="false"
+            android:gravity="center"
+            style="@android:style/Widget.Button"
+            android:layout_marginTop="@dimen/icon_margin_top"
+            android:text="Avatar"
+            android:id="@+id/btn_avatar"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toEndOf="@id/speed_mode"
+            android:layout_width="@dimen/icon_size"
+            android:layout_height="@dimen/icon_size"/>
+
+    <TextView
             android:gravity="center"
             style="@android:style/Widget.Button"
             android:text="Export"

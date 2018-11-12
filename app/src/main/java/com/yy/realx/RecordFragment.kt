@@ -9,19 +9,25 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import com.ycloud.api.common.FilterGroupType
+import com.ycloud.api.common.FilterType
 import com.ycloud.api.common.SDKCommonCfg
 import com.ycloud.api.process.IMediaListener
 import com.ycloud.api.process.MediaProcess
 import com.ycloud.api.videorecord.IVideoRecord
 import com.ycloud.api.videorecord.IVideoRecordListener
 import com.ycloud.camera.utils.CameraUtils
+import com.ycloud.gpuimagefilter.utils.FilterOPType
 import com.ycloud.mediarecord.VideoRecordConstants
 import com.ycloud.utils.FileUtils
 import com.yy.media.MediaConfig
 import com.yy.media.MediaUtils
 import kotlinx.android.synthetic.main.fragment_record.*
 import java.io.File
+import java.io.FileOutputStream
 import java.util.*
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
 import kotlin.concurrent.schedule
 
 class RecordFragment : Fragment() {
@@ -121,9 +127,66 @@ class RecordFragment : Fragment() {
         btn_finish.setOnClickListener {
             extractAudioFirst()
         }
+        btn_avatar.setOnClickListener {
+            prepareAndAttach("avatar_yy_bear")
+        }
         mModel.video.observe(this, Observer {
             btn_finish.isEnabled = it!!.path.isNotBlank()
         })
+    }
+
+    /**
+     * 添加特效文件
+     */
+    private fun prepareAndAttach(name: String) {
+        val dir = File(context!!.filesDir, name)
+        val avatar = File(dir, "effect0.ofeffect")
+        if (!avatar.exists()) {
+            extractFromAssets(name)
+        }
+        val wrapper = mVideoRecord.recordFilterSessionWrapper
+        val effect = wrapper.addFilter(FilterType.GPUFILTER_EFFECT, FilterGroupType.DEFAULT_FILTER_GROUP)
+        val config = hashMapOf<Int, Any>(
+            FilterOPType.OP_SET_EFFECT_PATH to avatar.absolutePath
+        )
+        wrapper.updateFilterConf(effect, config)
+    }
+
+    /**
+     * 解压特效文件
+     */
+    private fun extractFromAssets(name: String) {
+        val dir = File(context!!.filesDir, name)
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        var count: Int
+        var buffer = ByteArray(2048)
+        val input = ZipInputStream(context!!.assets.open("$name.zip"))
+        var entry: ZipEntry? = input.nextEntry
+        while (null != entry) {
+            if (entry.isDirectory) {
+                File(dir, entry.name).mkdirs()
+            } else {
+                val file = File(dir, entry.name)
+                if (file.exists()) {
+                    FileUtils.deleteFileSafely(file)
+                }
+                val output = FileOutputStream(file)
+                while (true) {
+                    count = input.read(buffer)
+                    if (count <= 0) {
+                        break
+                    } else {
+                        output.write(buffer, 0, count)
+                    }
+                }
+                output.flush()
+                output.close()
+            }
+            entry = input.nextEntry
+        }
+        input.close()
     }
 
     /**

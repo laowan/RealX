@@ -17,8 +17,11 @@ import com.ycloud.utils.FileUtils
 import com.yy.android.ai.audiodsp.IOneKeyTunerApi
 import kotlinx.android.synthetic.main.fragment_edit.*
 import java.io.File
+import java.io.FileOutputStream
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
 import kotlin.concurrent.schedule
 import kotlin.concurrent.scheduleAtFixedRate
 
@@ -105,9 +108,60 @@ class EditFragment : Fragment() {
             speed_mode.text = String.format(Locale.getDefault(), "Speed(%d)", speed)
             setSpeed(SpeedMode[speed])
         }
+        btn_avatar.setOnClickListener {
+            prepareAndAttach("avatar_yy_bear")
+        }
         export_video.setOnClickListener {
             exportVideoWithParams()
         }
+    }
+
+    /**
+     * 添加特效文件
+     */
+    private fun prepareAndAttach(name: String) {
+        val dir = File(context!!.filesDir, name)
+        val avatar = File(dir, "effect0.ofeffect")
+        if (!avatar.exists()) {
+            extractFromAssets(name)
+        }
+    }
+
+    /**
+     * 解压特效文件
+     */
+    private fun extractFromAssets(name: String) {
+        val dir = File(context!!.filesDir, name)
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        var count: Int
+        var buffer = ByteArray(2048)
+        val input = ZipInputStream(context!!.assets.open("$name.zip"))
+        var entry: ZipEntry? = input.nextEntry
+        while (null != entry) {
+            if (entry.isDirectory) {
+                File(dir, entry.name).mkdirs()
+            } else {
+                val file = File(dir, entry.name)
+                if (file.exists()) {
+                    FileUtils.deleteFileSafely(file)
+                }
+                val output = FileOutputStream(file)
+                while (true) {
+                    count = input.read(buffer)
+                    if (count <= 0) {
+                        break
+                    } else {
+                        output.write(buffer, 0, count)
+                    }
+                }
+                output.flush()
+                output.close()
+            }
+            entry = input.nextEntry
+        }
+        input.close()
     }
 
     /**

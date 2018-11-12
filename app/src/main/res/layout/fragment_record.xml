@@ -45,6 +45,17 @@
             app:layout_constraintTop_toTopOf="parent"
             android:src="@mipmap/btn_mic_not_mute"/>
 
+    <TextView
+            style="@android:style/Widget.Button"
+            android:gravity="center"
+            android:text="Avatar"
+            android:layout_marginTop="@dimen/icon_margin_top"
+            app:layout_constraintStart_toEndOf="@id/toggle_mute"
+            app:layout_constraintTop_toTopOf="parent"
+            android:id="@+id/btn_avatar"
+            android:layout_width="@dimen/icon_size"
+            android:layout_height="@dimen/icon_size"/>
+
     <ImageButton
             android:layout_marginBottom="@dimen/ring_margin_bottom"
             android:background="@null"
