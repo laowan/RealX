@@ -27,7 +27,9 @@ class RealXViewModel : ViewModel() {
     }
 }
 
-data class VideoSettings(val path: String, val looping: Boolean = true)
+data class VideoSettings(val path: String, val looping: Boolean = true) {
+    var export: String? = null
+}
 
 data class AudioSettings(val path: String, val start: Int = 0) {
     var mode: String? = null

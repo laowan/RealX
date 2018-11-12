@@ -144,6 +144,7 @@ class RecordFragment : Fragment() {
         extractor.setMediaListener(object : IMediaListener {
             override fun onProgress(progress: Float) {
                 Log.d(TAG, "Audio.onProgress():$progress")
+                dialog.progress = (100 * progress).toInt()
             }
 
             override fun onError(errType: Int, errMsg: String?) {

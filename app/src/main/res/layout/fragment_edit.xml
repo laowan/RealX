@@ -22,4 +22,26 @@
             android:layout_width="@dimen/icon_size"
             android:layout_height="@dimen/icon_size"/>
 
+    <TextView
+            android:gravity="center"
+            style="@android:style/Widget.Button"
+            android:text="Speed"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toEndOf="@id/vol_mode"
+            android:layout_marginTop="@dimen/icon_margin_top"
+            android:id="@+id/speed_mode"
+            android:layout_width="@dimen/icon_size"
+            android:layout_height="@dimen/icon_size"/>
+
+    <TextView
+            android:gravity="center"
+            style="@android:style/Widget.Button"
+            android:text="Export"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:layout_marginTop="@dimen/icon_margin_top"
+            android:id="@+id/export_video"
+            android:layout_width="@dimen/icon_size"
+            android:layout_height="@dimen/icon_size"/>
+
 </android.support.constraint.ConstraintLayout>
