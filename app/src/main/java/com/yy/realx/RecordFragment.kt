@@ -48,7 +48,7 @@ class RecordFragment : Fragment() {
             "感冒", "重机械", "困兽", "强电流"
         )
         private val SpeedMode = arrayOf(
-            1.0f, 0.2f, 0.5f, 2.0f, 4.0f
+            0.2f, 0.5f, 1.0f, 2.0f, 4.0f
         )
     }
 
