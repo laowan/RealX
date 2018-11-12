@@ -14,12 +14,14 @@ import com.ycloud.api.common.FilterType
 import com.ycloud.api.common.SDKCommonCfg
 import com.ycloud.api.process.IMediaListener
 import com.ycloud.api.process.MediaProcess
+import com.ycloud.api.videorecord.IMediaInfoRequireListener
 import com.ycloud.api.videorecord.IVideoRecord
 import com.ycloud.api.videorecord.IVideoRecordListener
 import com.ycloud.camera.utils.CameraUtils
 import com.ycloud.gpuimagefilter.utils.FilterOPType
 import com.ycloud.mediarecord.VideoRecordConstants
 import com.ycloud.utils.FileUtils
+import com.ycloud.ymrmodel.MediaSampleExtraInfo
 import com.yy.media.MediaConfig
 import com.yy.media.MediaUtils
 import kotlinx.android.synthetic.main.fragment_record.*
@@ -75,6 +77,9 @@ class RecordFragment : Fragment() {
         ViewModelProviders.of(activity!!).get(RealXViewModel::class.java)
     }
 
+    var frames = 0
+    var amplitude = 0
+
     /**
      * 授权成功后回调
      */
@@ -96,7 +101,27 @@ class RecordFragment : Fragment() {
         mVideoRecord.setEnableAudioRecord(true)
         mVideoRecord.setAudioRecordListener { avgAmplitude, maxAmplitude ->
             Log.d(TAG, "onVolume():$avgAmplitude, $maxAmplitude")
+            synchronized(mModel) {
+                frames++
+                amplitude += avgAmplitude
+            }
         }
+        mVideoRecord.setMediaInfoRequireListener(object : IMediaInfoRequireListener {
+            override fun onRequireMediaInfo(info: MediaSampleExtraInfo?, pts: Long) {
+                TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+            }
+
+            override fun onRequireMediaInfo(info: MediaSampleExtraInfo?) {
+                Log.d(TAG, "onRequireMediaInfo():$amplitude, $frames")
+                synchronized(mModel) {
+                    if (frames <= 0) {
+                        info!!.rhythmSmoothRatio = 0f
+                    } else {
+                        info!!.rhythmSmoothRatio = (amplitude / frames).toFloat()
+                    }
+                }
+            }
+        })
         toggle_mute.setOnClickListener {
             val enable = mRecordConfig.audioEnable
             mVideoRecord.setEnableAudioRecord(!enable)
