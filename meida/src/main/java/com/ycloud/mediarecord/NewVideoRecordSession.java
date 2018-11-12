@@ -188,7 +188,9 @@ public class NewVideoRecordSession implements ICameraEventListener, SurfaceHolde
         mRecordFilterGroup = new RecordFilterGroup(mRecordFilterSessionWrapper.getSessionID(), mVideoFilterContext.getGLManager().getLooper());
         mRecordFilterGroup.setMediaFilterContext(mVideoFilterContext);
         mRecordFilterGroup.startListen();
-
+        if (null != mMediaInfoRequireListener) {
+            mRecordFilterGroup.setMediaInfoRequireListener(mMediaInfoRequireListener);
+        }
         mRecordFilterSessionWrapper.setRecordFilterGroup(mRecordFilterGroup);
 
 
@@ -1043,9 +1045,13 @@ public class NewVideoRecordSession implements ICameraEventListener, SurfaceHolde
         mRecordConfig.setAudioRecordListener(recordListener);
     }
 
+    private IMediaInfoRequireListener mMediaInfoRequireListener;
+
     public void setMediaInfoRequireListener(IMediaInfoRequireListener listener) {
         if (mRecordFilterGroup != null) {
             mRecordFilterGroup.setMediaInfoRequireListener(listener);
+        } else {
+            this.mMediaInfoRequireListener = listener;
         }
     }
 

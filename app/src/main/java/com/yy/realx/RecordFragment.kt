@@ -108,7 +108,7 @@ class RecordFragment : Fragment() {
         }
         mVideoRecord.setMediaInfoRequireListener(object : IMediaInfoRequireListener {
             override fun onRequireMediaInfo(info: MediaSampleExtraInfo?, pts: Long) {
-                TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                Log.d(TAG, "onRequireMediaInfo():$amplitude, $frames, $pts")
             }
 
             override fun onRequireMediaInfo(info: MediaSampleExtraInfo?) {
