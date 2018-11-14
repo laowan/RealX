@@ -1,14 +1,15 @@
 package com.yy.realx
 
+import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.drawable.ColorDrawable
-import android.media.ExifInterface
 import android.net.Uri
 import android.os.Bundle
+import android.support.media.ExifInterface
 import android.support.v4.app.DialogFragment
 import android.util.Log
 import android.view.*
@@ -26,6 +27,12 @@ class AvatarDialogFragment : DialogFragment() {
     companion object {
         private val TAG = AvatarDialogFragment::class.java.simpleName
         private const val KEY_PATH = "avatar_path"
+        private val IndexCursor = arrayOf(
+            1, 5, 10, 16, 22, 27, 31,           //脸轮廓
+            52, 55, 58, 61, 72, 73, 75, 76,     //眼睛轮廓
+            82, 83,                             //鼻子轮廓，49？
+            84, 87, 90, 93                      //嘴巴轮廓
+        )
 
         /**
          * static函数
@@ -49,13 +56,7 @@ class AvatarDialogFragment : DialogFragment() {
         dialog?.apply {
             setCancelable(false)
             setCanceledOnTouchOutside(false)
-            setOnKeyListener { dialog, keyCode, event ->
-                if (!isDetecting.get() && keyCode == KeyEvent.KEYCODE_BACK) {
-                    dismiss()
-                    return@setOnKeyListener true
-                }
-                return@setOnKeyListener false
-            }
+            setOnKeyListener { dialog, keyCode, event -> true }
             window?.apply {
                 setBackgroundDrawable(ColorDrawable(Color.WHITE))
                 setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT)
@@ -78,6 +79,8 @@ class AvatarDialogFragment : DialogFragment() {
         Timer("Avatar_Timer", false)
     }
 
+    private var isDetecting = AtomicBoolean(false)
+
     /**
      * 可行么？
      */
@@ -86,20 +89,36 @@ class AvatarDialogFragment : DialogFragment() {
         val bundle = arguments ?: return false
         val path = bundle.getString(KEY_PATH) ?: return false
         avatar_image.setImageURI(Uri.fromFile(File(path)))
-        mTimer.schedule(0) {
-            if (!isDetecting.get()) {
-                isDetecting.set(true)
+        avatar_done.setOnClickListener {
+            if (isDetecting.get()) {
+                return@setOnClickListener
+            }
+            dismiss()
+        }
+        avatar_waiting.visibility = View.VISIBLE
+        avatar_message.text = String.format(Locale.getDefault(), "检测中...")
+        if (!isDetecting.get()) {
+            isDetecting.set(true)
+            mTimer.schedule(0) {
                 doDetectionOn(path)
             }
         }
+        avatar_done.isEnabled = false
+        mModel.avatar.observe(this, Observer {
+            Log.d(TAG, "avatar.observe():${isDetecting.get()}")
+            if (isDetecting.get()) {
+                return@Observer
+            }
+            avatar_waiting.visibility = View.GONE
+            avatar_image.setImageURI(Uri.fromFile(File(path)))
+            avatar_done.isEnabled = true
+        })
         return true
     }
 
     private val mModel: RealXViewModel by lazy {
         ViewModelProviders.of(activity!!).get(RealXViewModel::class.java)
     }
-
-    var isDetecting = AtomicBoolean(false)
 
     /**
      * 图片检测人脸
@@ -136,11 +155,24 @@ class AvatarDialogFragment : DialogFragment() {
         //输出数据
         val count = point?.mFaceCount ?: 0
         Log.d(TAG, "doDetectionOn():$tryCount, $count")
-        if (count > 0) {
-            //todo: mark point here
+        val values = mutableListOf<Float>()
+        if (count > 0 && null != point?.mFacePoints && point.mFacePoints.isNotEmpty()) {
+            point.mFacePoints[0].mapIndexed { index, value ->
+                if (IndexCursor.contains(index / 2)) {
+                    Log.d(TAG, "Point@($index):$value")
+                    values.add(value)
+                }
+            }
         }
         mDetection.releaseFacePointInfo(point)
-        isDetecting.set(false)
+        if (values.isEmpty()) {
+            //todo: add default values
+        }
+        activity!!.runOnUiThread {
+            isDetecting.set(false)
+            mModel.avatar.value = AvatarSettings(path, values)
+            avatar_image.setValues(values)
+        }
     }
 
     /**

@@ -15,9 +15,10 @@ public class MediaUtils {
      *
      * @param context
      * @param config
+     * @param listener
      * @return
      */
-    public static final IVideoRecord prepare(Context context, MediaConfig config) {
+    public static final IVideoRecord prepare(Context context, MediaConfig config, IVideoPreviewListener listener) {
         Log.d(TAG, "prepare()");
         IVideoRecord record;
         if (null == config.surfaceView) {
@@ -29,12 +30,7 @@ public class MediaUtils {
             record.setAspectRatio(config.aspectRatioType, config.aspectOffset.first, config.aspectOffset.second);
             record.setEnableAudioRecord(config.audioEnable);
             record.setFlashMode(config.flashMode);
-            record.startPreview(new IVideoPreviewListener() {
-                @Override
-                public void onStart() {
-                    Log.d(TAG, "Preview.onStart()");
-                }
-            });
+            record.startPreview(listener);
         } catch (Exception e) {
             e.printStackTrace();
         }

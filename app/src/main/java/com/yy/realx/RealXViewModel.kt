@@ -11,6 +11,11 @@ class RealXViewModel : ViewModel() {
     var video = MutableLiveData<VideoSettings>()
 
     /**
+     * 人脸数据
+     */
+    var avatar = MutableLiveData<AvatarSettings>()
+
+    /**
      * 流程配置
      */
     var stage = MutableLiveData<Stage>()
@@ -73,6 +78,8 @@ data class VideoSegment(val index: Int, val path: String) {
 data class AudioSettings(val path: String, val start: Int = 0) {
     var tuner: String = path.replace(".wav", "_tuner.wav")
 }
+
+data class AvatarSettings(val path: String, val values: List<Float> = emptyList(), val auto: Boolean = true)
 
 enum class Stage {
     PERMISSION, RECORD, EDIT, SHARE

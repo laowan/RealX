@@ -33,6 +33,7 @@ import kotlinx.android.synthetic.main.fragment_record.*
 import java.io.File
 import java.io.FileOutputStream
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
@@ -113,6 +114,7 @@ class RecordFragment : Fragment() {
         ViewModelProviders.of(activity!!).get(RealXViewModel::class.java)
     }
 
+    private val isInitialed = AtomicBoolean(false)
     private val tuner = AtomicInteger(0)
 
     /**
@@ -121,9 +123,16 @@ class RecordFragment : Fragment() {
     private fun preparePreview() {
         Log.d(TAG, "preparePreview():${lifecycle.currentState}")
         mRecordConfig = MediaConfig.Builder().attach(video_view).build()
-        mVideoRecord = MediaUtils.prepare(context, mRecordConfig)
+        mVideoRecord = MediaUtils.prepare(context, mRecordConfig) {
+            Log.d(TAG, "onPreviewStart()")
+            isInitialed.set(true)
+        }
         //事件绑定
         toggle_camera.setOnClickListener {
+            Log.d(TAG, "SwitchCamera.OnClick()")
+            if (!isInitialed.get()) {
+                return@setOnClickListener
+            }
             mVideoRecord.switchCamera()
             if (mRecordConfig.cameraId == VideoRecordConstants.FRONT_CAMERA) {
                 mRecordConfig.cameraId = VideoRecordConstants.BACK_CAMERA
@@ -161,6 +170,10 @@ class RecordFragment : Fragment() {
         })
         //表示是否mute
         toggle_mute.setOnClickListener {
+            Log.d(TAG, "MuteRecord.OnClick()")
+            if (!isInitialed.get()) {
+                return@setOnClickListener
+            }
             val enable = mRecordConfig.audioEnable
             mVideoRecord.setEnableAudioRecord(!enable)
             val resId = if (enable) R.mipmap.btn_mic_mute else R.mipmap.btn_mic_not_mute
@@ -170,6 +183,10 @@ class RecordFragment : Fragment() {
         //录制一段视频
         SDKCommonCfg.disableMemoryMode()
         toggle_record.setOnClickListener {
+            Log.d(TAG, "RecordButton.OnClick()")
+            if (!isInitialed.get()) {
+                return@setOnClickListener
+            }
             if (isRecording) {
                 mVideoRecord.stopRecord()
             } else {
@@ -184,7 +201,7 @@ class RecordFragment : Fragment() {
                 val segment = video.segmentAt(-1)
                 checkNotNull(segment)
                 segment.tuner = TunerMode[tuner.get() % TunerMode.size]
-                segment.res = resPath
+                segment.res = mModel.avatar.value?.path ?: ""
                 Log.d(TAG, "startRecord():segment = ${segment.path}")
                 mVideoRecord.setOutputPath(segment.path)
                 mVideoRecord.setRecordListener(mRecordListener)
@@ -195,17 +212,28 @@ class RecordFragment : Fragment() {
         //
         btn_finish.isEnabled = false
         btn_finish.setOnClickListener {
+            Log.d(TAG, "NextStage.OnClick()")
+            if (!isInitialed.get()) {
+                return@setOnClickListener
+            }
             checkNotNull(mModel.video.value)
             concatVideoSegments()
         }
-        //
+        //选择图片
         btn_avatar.setOnClickListener {
-            prepareAndAttachAvatar("avatar_yy_bear")
+            Log.d(TAG, "AvatarEffect.OnClick()")
+            if (!isInitialed.get()) {
+                return@setOnClickListener
+            }
+            applyAvatar("face2danim")
         }
         //
         val speedModes = arrayOf(speed_mode_0, speed_mode_1, speed_mode_2, speed_mode_3, speed_mode_4)
         val listener = View.OnClickListener {
             Log.d(TAG, "SpeedModes.OnViewClick():$it")
+            if (!isInitialed.get()) {
+                return@OnClickListener
+            }
             if (!it.isSelected) {
                 speedModes.forEach { view ->
                     view.isSelected = (view == it)
@@ -223,6 +251,10 @@ class RecordFragment : Fragment() {
         //
         btn_voice.text = TunerName[0]
         btn_voice.setOnClickListener {
+            Log.d(TAG, "VoiceTuner.OnClick()")
+            if (!isInitialed.get()) {
+                return@setOnClickListener
+            }
             btn_voice.text = TunerName[tuner.incrementAndGet() % TunerName.size]
         }
     }
@@ -232,7 +264,7 @@ class RecordFragment : Fragment() {
     /**
      * 添加特效文件
      */
-    private fun prepareAndAttachAvatar(name: String) {
+    private fun applyAvatar(name: String) {
         val dir = File(context!!.filesDir, name)
         val avatar = File(dir, "effect0.ofeffect")
         if (!avatar.exists()) {
@@ -245,18 +277,20 @@ class RecordFragment : Fragment() {
                 FilterOPType.OP_SET_EFFECT_PATH to avatar.absolutePath
             )
             wrapper.updateFilterConf(effect, config)
+            //初始化图片显示
+            btn_avatar.setImageURI(Uri.fromFile(File(dir, "target.png")))
         } else {
-            wrapper.removeFilter(effect)
-            effect = FilterIDManager.NO_ID
+//            wrapper.removeFilter(effect)
+//            effect = FilterIDManager.NO_ID
+            val intent = Intent(Intent.ACTION_PICK)
+            intent.data = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+            startActivityForResult(intent, REQUEST_AVATAR)
         }
-        //选择图片
-        val intent = Intent(Intent.ACTION_PICK)
-        intent.data = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-        startActivityForResult(intent, REQUEST_AVATAR)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        Log.d(TAG, "onActivityResult():$resultCode")
         if (resultCode != Activity.RESULT_OK) {
             return
         }
@@ -274,8 +308,6 @@ class RecordFragment : Fragment() {
         }
     }
 
-    private var resPath = ""
-
     /**
      * 人脸检测
      */
@@ -292,11 +324,13 @@ class RecordFragment : Fragment() {
         if (path.isBlank()) {
             return
         }
-        resPath = path
         activity!!.runOnUiThread {
-            btn_avatar.setImageURI(Uri.fromFile(File(path)))
             val avatar = AvatarDialogFragment.newInstance(path)
             avatar.showNow(childFragmentManager, AvatarDialogFragment::class.java.simpleName)
+            avatar.dialog.setOnDismissListener {
+                Log.d(TAG, "OnDismissListener.onDismiss():$path")
+                btn_avatar.setImageURI(Uri.fromFile(File(path)))
+            }
         }
     }
 
