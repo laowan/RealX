@@ -391,7 +391,9 @@ class RecordFragment : Fragment() {
      */
     private fun extractAudioFirst(dialog: ProgressDialog) {
         Log.d(TAG, "extractAudioFirst()")
-        dialog.setMessage("提取中...")
+        activity!!.runOnUiThread {
+            dialog.setMessage("提取中...")
+        }
         val video = mModel.video.value
         checkNotNull(video)
         val path = video.path

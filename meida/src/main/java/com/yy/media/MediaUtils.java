@@ -28,6 +28,7 @@ public class MediaUtils {
             record.setAspectRatio(config.aspectRatioType, config.aspectOffset.first, config.aspectOffset.second);
             record.setEnableAudioRecord(config.audioEnable);
             record.setFlashMode(config.flashMode);
+//            record.startPreview(null);
         } catch (Exception e) {
             e.printStackTrace();
         }
