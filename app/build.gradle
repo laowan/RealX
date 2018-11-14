@@ -21,11 +21,26 @@ android {
         ndk {
             abiFilters "armeabi-v7a"
         }
+
+        signingConfigs {
+            config {
+                storeFile file("keytools.jks")
+                storePassword "realxx"
+                keyAlias "realxx"
+                keyPassword "realxx"
+            }
+        }
     }
     buildTypes {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.config
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.config
         }
     }
     externalNativeBuild {
@@ -49,5 +64,5 @@ dependencies {
     implementation "android.arch.lifecycle:extensions:1.1.1"
 
     compile project(':meida')
-    compile (name:"aidsp-debug", ext:"aar")
+    compile(name: "aidsp-debug", ext: "aar")
 }
