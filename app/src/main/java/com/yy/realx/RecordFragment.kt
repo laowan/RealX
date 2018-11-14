@@ -16,6 +16,7 @@ import com.ycloud.api.common.FilterGroupType
 import com.ycloud.api.common.FilterType
 import com.ycloud.api.common.SDKCommonCfg
 import com.ycloud.api.process.IMediaListener
+import com.ycloud.api.process.MediaProbe
 import com.ycloud.api.process.MediaProcess
 import com.ycloud.api.process.VideoConcat
 import com.ycloud.api.videorecord.IMediaInfoRequireListener
@@ -72,12 +73,8 @@ class RecordFragment : Fragment() {
 
     private var isRecording = false
     private var mRecordListener = object : IVideoRecordListener {
-        private var duration = 0f
 
         override fun onProgress(seconds: Float) {
-            //更新数据
-            duration = seconds
-            //刷新界面
             activity!!.runOnUiThread {
                 record_ms.text = String.format(Locale.getDefault(), "%.2fs", seconds + total)
             }
@@ -86,11 +83,8 @@ class RecordFragment : Fragment() {
         private var total = 0f
 
         override fun onStart(successed: Boolean) {
-            //更新数据
-            duration = 0f
-            //刷新界面
+            total = (mModel.video.value?.duration ?: 0).toFloat() / 1000
             activity!!.runOnUiThread {
-                total = (mModel.video.value?.duration ?: 0).toFloat() / 1000
                 record_ms.text = String.format(Locale.getDefault(), "%.2fs", total)
                 toggle_record.setImageResource(R.drawable.btn_stop_record)
             }
@@ -100,9 +94,13 @@ class RecordFragment : Fragment() {
             //更新数据
             val video = mModel.video.value ?: return
             val segment = video.segmentLast()
-            segment.duration = (duration * 1000).toInt()
+            mTimer.schedule(0) {
+                val info = MediaProbe.getMediaInfo(segment.path, false) ?: return@schedule
+                Log.d(TAG, "getMediaInfo():${info.duration}")
+                segment.duration = (info.duration * 1000).toInt()
+            }
+            //刷新界面
             activity!!.runOnUiThread {
-                //刷新界面
                 btn_finish.isEnabled = video.segments.isNotEmpty()
                 record_ms.text = ""
                 toggle_record.setImageResource(R.drawable.btn_start_record)
