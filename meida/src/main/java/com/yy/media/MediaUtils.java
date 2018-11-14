@@ -2,6 +2,7 @@ package com.yy.media;
 
 import android.content.Context;
 import android.util.Log;
+import com.ycloud.api.videorecord.IVideoPreviewListener;
 import com.ycloud.api.videorecord.IVideoRecord;
 import com.ycloud.api.videorecord.NewVideoRecord;
 import com.ycloud.api.videorecord.VideoSurfaceView;
@@ -28,7 +29,12 @@ public class MediaUtils {
             record.setAspectRatio(config.aspectRatioType, config.aspectOffset.first, config.aspectOffset.second);
             record.setEnableAudioRecord(config.audioEnable);
             record.setFlashMode(config.flashMode);
-//            record.startPreview(null);
+            record.startPreview(new IVideoPreviewListener() {
+                @Override
+                public void onStart() {
+                    Log.d(TAG, "Preview.onStart()");
+                }
+            });
         } catch (Exception e) {
             e.printStackTrace();
         }
