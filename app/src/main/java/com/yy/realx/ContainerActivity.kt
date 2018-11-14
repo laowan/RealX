@@ -110,10 +110,10 @@ class ContainerActivity : AppCompatActivity() {
                 mModel.transitTo(Stage.RECORD)
             }
             Stage.SHARE -> {
-                mModel.transitTo(Stage.EDIT)
+                mModel.transitTo(Stage.RECORD)
             }
             else -> {
-                mModel.transitTo(Stage.RECORD)
+                super.onBackPressed()
             }
         }
     }
@@ -128,9 +128,11 @@ class ContainerActivity : AppCompatActivity() {
      */
     private fun release() {
         val video = mModel.video.value ?: return
+        FileUtils.deleteFileSafely(File(video.audio.path))
+        FileUtils.deleteFileSafely(File(video.audio.tuner))
         video.segments.forEach {
             FileUtils.deleteFileSafely(File(it.path))
         }
-        FileUtils.deleteFileSafely(File(video.audio.path))
+        FileUtils.renameFileSafely(File(video.export), File(video.path))
     }
 }

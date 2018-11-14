@@ -128,10 +128,11 @@ class AvatarDialogFragment : DialogFragment() {
         val options = BitmapFactory.Options()
         options.inJustDecodeBounds = true
         BitmapFactory.decodeFile(path, options)
-        options.inSampleSize = resizeSampleRatio(options, 720, 1280)
+        options.inSampleSize = resizeSampleRatio(options, 720, 960)
         options.inJustDecodeBounds = false
         var bitmap = BitmapFactory.decodeFile(path, options)
         bitmap = restrictPortrait(path, bitmap) {
+            Log.d(TAG, "restrictPortrait():$path")
             replaceResourceFile(path, it)
         }
         checkNotNull(bitmap)

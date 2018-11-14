@@ -164,6 +164,7 @@ class RecordFragment : Fragment() {
                     }
                 }
                 info?.rhythmSmoothRatio = loudness
+                info?.rhythmFrequencyData = mModel.avatar.value?.syncBytes() ?: ByteArray(0)
             }
         })
         //表示是否mute
@@ -223,7 +224,10 @@ class RecordFragment : Fragment() {
             if (!isInitialed.get()) {
                 return@setOnClickListener
             }
-            applyAvatar("face2danim")
+            //先去选择图片
+            val intent = Intent(Intent.ACTION_PICK)
+            intent.data = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+            startActivityForResult(intent, REQUEST_AVATAR)
         }
         //
         val speedModes = arrayOf(speed_mode_0, speed_mode_1, speed_mode_2, speed_mode_3, speed_mode_4)
@@ -262,28 +266,25 @@ class RecordFragment : Fragment() {
     /**
      * 添加特效文件
      */
-    private fun applyAvatar(name: String) {
+    private fun applyAvatar(name: String, path: String) {
         val dir = File(context!!.filesDir, name)
         val avatar = File(dir, "effect0.ofeffect")
         if (!avatar.exists()) {
             extractFromAssets(name)
         }
+        FileUtils.copyFile(path, File(dir, "target.png").absolutePath)
         val wrapper = mVideoRecord.recordFilterSessionWrapper ?: return
-        if (effect == FilterIDManager.NO_ID) {
-            effect = wrapper.addFilter(FilterType.GPUFILTER_EFFECT, FilterGroupType.DEFAULT_FILTER_GROUP)
-            val config = hashMapOf<Int, Any>(
-                FilterOPType.OP_SET_EFFECT_PATH to avatar.absolutePath
-            )
-            wrapper.updateFilterConf(effect, config)
-            //初始化图片显示
-            btn_avatar.setImageURI(Uri.fromFile(File(dir, "target.png")))
-        } else {
-//            wrapper.removeFilter(effect)
-//            effect = FilterIDManager.NO_ID
-            val intent = Intent(Intent.ACTION_PICK)
-            intent.data = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-            startActivityForResult(intent, REQUEST_AVATAR)
+        if (effect != FilterIDManager.NO_ID) {
+            wrapper.removeFilter(effect)
+            effect = FilterIDManager.NO_ID
         }
+        effect = wrapper.addFilter(FilterType.GPUFILTER_EFFECT, FilterGroupType.DEFAULT_FILTER_GROUP)
+        val config = hashMapOf<Int, Any>(
+            FilterOPType.OP_SET_EFFECT_PATH to avatar.absolutePath
+        )
+        wrapper.updateFilterConf(effect, config)
+        //初始化图片显示
+        btn_avatar.setImageURI(Uri.fromFile(File(path)))
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -295,7 +296,8 @@ class RecordFragment : Fragment() {
         when (requestCode) {
             REQUEST_AVATAR -> {
                 val uri = data?.data ?: return
-                Log.d(TAG, "onActivityResult():$uri")
+                val path = data?.getStringExtra("path")
+                Log.d(TAG, "onActivityResult():$uri, $path")
                 mTimer.schedule(0) {
                     prepareAvatar(uri)
                 }
@@ -322,12 +324,15 @@ class RecordFragment : Fragment() {
         if (path.isBlank()) {
             return
         }
+        //拷贝一份文件替换特效
         activity!!.runOnUiThread {
             val avatar = AvatarDialogFragment.newInstance(path)
             avatar.showNow(childFragmentManager, AvatarDialogFragment::class.java.simpleName)
             avatar.dialog.setOnDismissListener {
                 Log.d(TAG, "OnDismissListener.onDismiss():$path")
                 btn_avatar.setImageURI(Uri.fromFile(File(path)))
+                //创建effect
+                applyAvatar("face2danim", path)
             }
         }
     }

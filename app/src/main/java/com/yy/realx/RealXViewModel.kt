@@ -79,7 +79,23 @@ data class AudioSettings(val path: String, val start: Int = 0) {
     var tuner: String = path.replace(".wav", "_tuner.wav")
 }
 
-data class AvatarSettings(val path: String, val values: List<Float> = emptyList(), val auto: Boolean = true)
+data class AvatarSettings(val path: String, val values: List<Float> = emptyList(), val auto: Boolean = true) {
+    private val bytes = mutableListOf<Byte>()
+    /**
+     * 换算255
+     */
+    fun syncBytes(): ByteArray {
+        if (bytes.isNotEmpty()) {
+            return bytes.toByteArray()
+        }
+        if (values.isNotEmpty()) {
+            values.forEach {
+                bytes.add((it * 255).toByte())
+            }
+        }
+        return bytes.toByteArray()
+    }
+}
 
 enum class Stage {
     PERMISSION, RECORD, EDIT, SHARE

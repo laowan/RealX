@@ -214,7 +214,7 @@ public class FileUtils {
 
 	/**
 	 * 安全删除文件.
-	 * 
+	 *
 	 * @param file
 	 * @return
 	 */
@@ -224,6 +224,23 @@ public class FileUtils {
 			File tmp = new File(tmpPath);
 			file.renameTo(tmp);
 			return tmp.delete();
+		}
+		return false;
+	}
+
+	/**
+	 * 重命名文件
+     *
+	 * @param src
+	 * @param dst
+	 * @return
+	 */
+	public static boolean renameFileSafely(File src, File dst) {
+		if (null != src) {
+			if (dst.exists()) {
+				dst.delete();
+			}
+			return src.renameTo(dst);
 		}
 		return false;
 	}
@@ -487,7 +504,7 @@ public class FileUtils {
         }
         return false;
     }
-	
+
 	public static File getFileFromBytes(byte[] b, String outputFile){
         BufferedOutputStream stream = null;
         File file = null;
