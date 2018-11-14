@@ -247,7 +247,7 @@ class RecordFragment : Fragment() {
             it.setOnClickListener(listener)
             it.isSelected = false
         }
-        speed_mode_2.performClick()
+        speed_mode_2.isSelected = true
         //
         btn_voice.text = TunerName[0]
         btn_voice.setOnClickListener {
